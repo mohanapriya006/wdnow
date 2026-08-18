@@ -5,18 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import CurrentUser, require_vendor, assert_vendor_owns_assignment
-from app.models import Project, Assignment, AssignmentStatus, Milestone, MilestoneStatus
+from app.models import Project, Assignment, AssignmentStatus, Milestone, MilestoneStatus, ProjectStatus
 from app.schemas import ProjectCreate, ProjectUpdate, ProjectOut, MilestoneCreate, MilestoneUpdate, MilestoneOut
 from datetime import date
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
-def _validate_terms(start_date, end_date, pay_rate, bill_rate):
+def _validate_terms(start_date, end_date, pay_rate):
     if end_date and end_date < start_date:
         raise HTTPException(status_code=400, detail="End date cannot be before start date.")
-    if bill_rate < pay_rate:
-        raise HTTPException(status_code=400, detail="Bill rate cannot be lower than pay rate.")
 
 
 def _out(project: Project, db: Session) -> ProjectOut:
@@ -33,7 +31,7 @@ def list_projects(current_user: CurrentUser = Depends(require_vendor), db: Sessi
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
 def create_project(payload: ProjectCreate, current_user: CurrentUser = Depends(require_vendor), db: Session = Depends(get_db)):
-    _validate_terms(payload.start_date, payload.end_date, payload.pay_rate, payload.bill_rate)
+    _validate_terms(payload.start_date, payload.end_date, payload.pay_rate)
     project = Project(vendor_id=current_user.vendor_id, **payload.model_dump())
     db.add(project)
     db.commit()
@@ -57,8 +55,7 @@ def update_project(project_id: str, payload: ProjectUpdate, current_user: Curren
         raise HTTPException(status_code=404, detail="Project not found.")
     assert_vendor_owns_assignment(current_user.vendor_id, project.vendor_id)
     updates = payload.model_dump(exclude_unset=True)
-    _validate_terms(updates.get("start_date", project.start_date), updates.get("end_date", project.end_date),
-                    updates.get("pay_rate", project.pay_rate), updates.get("bill_rate", project.bill_rate))
+    _validate_terms(updates.get("start_date", project.start_date), updates.get("end_date", project.end_date), updates.get("pay_rate", project.pay_rate))
     for field, value in updates.items():
         setattr(project, field, value)
     db.commit()
@@ -94,4 +91,9 @@ def update_milestone(project_id: str, milestone_id: str, payload: MilestoneUpdat
     updates = payload.model_dump(exclude_unset=True)
     if updates.get("due_date", milestone.due_date) < updates.get("start_date", milestone.start_date): raise HTTPException(status_code=400, detail="Due date cannot be before start date.")
     for field, value in updates.items(): setattr(milestone, field, value)
+    all_milestones = db.query(Milestone).filter(Milestone.project_id == project_id).all()
+    if all_milestones and all(item.status == MilestoneStatus.COMPLETED for item in all_milestones):
+        milestone.project.status = ProjectStatus.COMPLETED
+    elif milestone.project.status == ProjectStatus.COMPLETED:
+        milestone.project.status = ProjectStatus.ACTIVE
     db.commit(); db.refresh(milestone); return milestone

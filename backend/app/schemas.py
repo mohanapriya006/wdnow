@@ -122,7 +122,6 @@ class ProjectCreate(BaseModel):
     work_mode: str = Field(default="REMOTE", max_length=30)
     working_hours: int = Field(default=40, ge=1, le=168)
     pay_rate: float = Field(gt=0)
-    bill_rate: float = Field(gt=0)
     currency: str = "INR"
     status: ProjectStatus = ProjectStatus.OPEN
 
@@ -138,7 +137,6 @@ class ProjectUpdate(BaseModel):
     work_mode: Optional[str] = None
     working_hours: Optional[int] = Field(default=None, ge=1, le=168)
     pay_rate: Optional[float] = Field(default=None, gt=0)
-    bill_rate: Optional[float] = Field(default=None, gt=0)
     currency: Optional[str] = None
     status: Optional[ProjectStatus] = None
 
@@ -157,7 +155,6 @@ class ProjectOut(BaseModel):
     work_mode: str
     working_hours: int
     pay_rate: float
-    bill_rate: float
     currency: str
     status: ProjectStatus
     created_at: datetime

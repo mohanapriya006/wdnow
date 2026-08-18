@@ -152,7 +152,6 @@ class Project(Base):
     work_mode = Column(String, default="REMOTE", nullable=False)
     working_hours = Column(Integer, default=40, nullable=False)
     pay_rate = Column(Float, nullable=False)
-    bill_rate = Column(Float, nullable=False)
     currency = Column(String, default="INR", nullable=False)
     status = Column(SAEnum(ProjectStatus), default=ProjectStatus.OPEN, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

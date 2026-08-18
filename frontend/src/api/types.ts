@@ -104,7 +104,7 @@ export interface Project {
   id: string; vendor_id: string; name: string; description: string | null; role: string;
   required_skills: string | null; start_date: string; end_date: string | null;
   location: string | null; work_mode: string; working_hours: number; pay_rate: number;
-  bill_rate: number; currency: string; status: ProjectStatus; created_at: string; updated_at: string;
+  currency: string; status: ProjectStatus; created_at: string; updated_at: string;
   assigned_contractors_count: number;
 }
 export type MilestoneStatus = "UPCOMING" | "IN_PROGRESS" | "COMPLETED" | "DELAYED";

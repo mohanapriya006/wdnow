@@ -48,7 +48,7 @@ const vendorNav: NavItem[] = [
   { label: "Projects & Workforce", to: "/vendor/projects", icon: icons.assignments },
   { label: "Assignments", to: "/vendor/assignments", icon: icons.assignments },
   { label: "Timesheets", to: "/vendor/timesheets", icon: icons.timesheets },
-  { label: "Milestones", to: "/vendor/milestones", icon: icons.milestones, comingSoon: true },
+  { label: "Milestones", to: "/vendor/milestones", icon: icons.milestones },
   { label: "Invoices", to: "/vendor/invoices", icon: icons.invoices, comingSoon: true },
   { label: "Payroll", to: "/vendor/payroll", icon: icons.payroll, comingSoon: true },
 ];

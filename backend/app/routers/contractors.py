@@ -159,34 +159,50 @@ def get_contractor(
 
 
 
-@router.get("/api/contractors/me", response_model=ContractorMeOut)
-def get_my_contractor_profile(
-    current_user: CurrentUser = Depends(require_contractor),
-    db: Session = Depends(get_db),
-):
-    print("DEBUG contractor_id:", current_user.contractor_id)
 
-    contractor = (
-        db.query(Contractor)
-        .filter(Contractor.id == current_user.contractor_id)
-        .first()
-    )
+# @router.get("/api/contractors/me", response_model=ContractorMeOut)
+# def get_my_contractor_profile(
+#     current_user: CurrentUser = Depends(require_contractor),
+#     db: Session = Depends(get_db),
+# ):
+#     print("========== CONTRACTOR ME DEBUG ==========")
+#     print("contractor_id:", current_user.contractor_id)
+#     print("user_id:", current_user.id)
+#     print("role:", current_user.role)
 
-    print("DEBUG contractor:", contractor)
+#     contractor = (
+#         db.query(Contractor)
+#         .filter(Contractor.id == current_user.contractor_id)
+#         .first()
+#     )
 
-    if not contractor:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Contractor profile not found.",
-        )
+#     print("contractor:", contractor)
 
-    print("DEBUG vendor:", contractor.vendor)
+#     if not contractor:
+#         print("❌ CONTRACTOR NOT FOUND")
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="Contractor profile not found.",
+#         )
 
-    return ContractorMeOut(
-        **ContractorOut.model_validate(contractor).model_dump(),
-        vendor_name=contractor.vendor.name,
-    )
+#     print("contractor.id:", contractor.id)
+#     print("vendor:", contractor.vendor)
+#     print("vendor_id:", contractor.vendor_id)
 
+#     if not contractor.vendor:
+#         print("❌ VENDOR RELATIONSHIP NOT FOUND")
+#         raise HTTPException(
+#             status_code=500,
+#             detail="Contractor vendor relationship is missing.",
+#         )
+
+#     print("vendor.name:", contractor.vendor.name)
+#     print("=========================================")
+
+#     return ContractorMeOut(
+#         **ContractorOut.model_validate(contractor).model_dump(),
+#         vendor_name=contractor.vendor.name,
+#     )
 
 
 

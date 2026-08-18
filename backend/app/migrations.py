@@ -23,6 +23,14 @@ def upgrade_schema() -> None:
         for name, sql_type in additions.items():
             if name not in existing:
                 connection.execute(text(f"ALTER TABLE assignments ADD COLUMN {name} {sql_type}"))
+        # Billing is no longer a project-level concept. Assignment records
+        # retain their historical commercial rate for invoice compatibility.
+        project_columns = {column["name"] for column in inspector.get_columns("projects")} if "projects" in inspector.get_table_names() else set()
+        if "bill_rate" in project_columns:
+            if engine.dialect.name == "postgresql":
+                connection.execute(text("ALTER TABLE projects DROP COLUMN bill_rate"))
+            # SQLite older than 3.35 cannot safely drop a column; its value is
+            # ignored by the ORM and API until a managed migration is run.
 
     # Convert pre-Projects assignment rows into first-class projects without
     # losing their already-approved commercial terms.

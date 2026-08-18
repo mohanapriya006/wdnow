@@ -99,7 +99,8 @@ def create_assignment(
         end_date=end_date,
         working_hours=project.working_hours,
         pay_rate=project.pay_rate,
-        bill_rate=project.bill_rate,
+        # Client billing is assignment-level commercial data; project setup does not expose it.
+        bill_rate=project.pay_rate,
         currency=project.currency,
         notes=payload.notes,
         description=project.description,

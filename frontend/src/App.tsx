@@ -15,6 +15,7 @@ import { VendorAssignments } from "@/pages/vendor/VendorAssignments";
 import { VendorAssignmentNew } from "@/pages/vendor/VendorAssignmentNew";
 import { VendorAssignmentDetail } from "@/pages/vendor/VendorAssignmentDetail";
 import { VendorProjects } from "@/pages/vendor/VendorProjects";
+import { VendorProjectDetail } from "@/pages/vendor/VendorProjectDetail";
 import { VendorTimesheets } from "@/pages/vendor/VendorTimesheets";
 
 import { ContractorDashboard } from "@/pages/contractor/ContractorDashboard";
@@ -97,6 +98,7 @@ function AppRoutes() {
         path="/vendor/projects"
         element={<ProtectedRoute allowedRole="VENDOR"><VendorProjects /></ProtectedRoute>}
       />
+      <Route path="/vendor/projects/:id" element={<ProtectedRoute allowedRole="VENDOR"><VendorProjectDetail /></ProtectedRoute>} />
       <Route
         path="/vendor/assignments"
         element={
@@ -127,11 +129,7 @@ function AppRoutes() {
       />
       <Route
         path="/vendor/milestones"
-        element={
-          <ProtectedRoute allowedRole="VENDOR">
-            <ComingSoonPage title="Milestones" />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorProjects /></ProtectedRoute>}
       />
       <Route
         path="/vendor/invoices"

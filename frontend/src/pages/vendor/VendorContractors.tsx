@@ -7,11 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PageLoader, EmptyState } from "@/components/ui/Feedback";
 import { ContractorStatusBadge, AssignmentStatusBadge } from "@/components/ui/Badge";
-import { AddContractorDialog } from "./AddContractorDialog";
 
 export function VendorContractors() {
   const [search, setSearch] = useState("");
-  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const { data: contractors, isLoading } = useQuery({
     queryKey: ["vendor-contractors"],
@@ -36,7 +34,6 @@ export function VendorContractors() {
             Contractors onboarded to your vendor program.
           </p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)}>+ Add Contractor</Button>
       </div>
 
       <div className="flex items-center gap-3">
@@ -54,8 +51,7 @@ export function VendorContractors() {
         ) : filtered.length === 0 ? (
           <EmptyState
             title={search ? "No contractors match your search" : "No contractors yet"}
-            description={!search ? "Add your first contractor to start building your bench." : undefined}
-            action={!search ? <Button onClick={() => setIsAddOpen(true)}>+ Add Contractor</Button> : undefined}
+            description={!search ? "Contractors join this vendor program through the contractor registration flow." : undefined}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -109,8 +105,6 @@ export function VendorContractors() {
           </div>
         )}
       </Card>
-
-      <AddContractorDialog open={isAddOpen} onClose={() => setIsAddOpen(false)} />
     </div>
   );
 }
