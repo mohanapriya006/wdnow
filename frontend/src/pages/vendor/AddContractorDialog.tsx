@@ -124,10 +124,20 @@ export function AddContractorDialog({ open, onClose }: { open: boolean; onClose:
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="c-password">Temporary Password (optional)</Label>
+              <Input
+                id="c-password"
+                type="password"
+                value={form.password || ""}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Leave blank for default: Contractor@123"
+              />
+            </div>
+
             <div className="rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
-              A login account will be created automatically for this contractor with a default
-              demo password (<span className="font-mono font-medium text-ink-700">Contractor@123</span>),
-              which they can use to sign in immediately.
+              A login account is created automatically for this contractor. They can sign in immediately
+              using their email and the temporary password (default: <span className="font-mono font-medium text-ink-700">Contractor@123</span>).
             </div>
           </div>
 

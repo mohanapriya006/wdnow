@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "@/pages/LoginPage";
+import { RegisterVendorPage } from "@/pages/RegisterVendorPage";
+import { RegisterContractorPage } from "@/pages/RegisterContractorPage";
 import { NotFound } from "@/pages/NotFound";
 import { ComingSoonPage } from "@/pages/ComingSoonPage";
 
@@ -30,12 +32,11 @@ const queryClient = new QueryClient({
 });
 
 function RootRedirect() {
-  const { user, isAuthenticated, isInitializing } = useAuth();
+  const { isAuthenticated, user, isInitializing } = useAuth();
   if (isInitializing) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return (
-    <Navigate to={user?.role === "VENDOR" ? "/vendor/dashboard" : "/contractor/dashboard"} replace />
-  );
+  if (user?.role === "VENDOR") return <Navigate to="/vendor/dashboard" replace />;
+  return <Navigate to="/contractor/dashboard" replace />;
 }
 
 function LoginRoute() {
@@ -49,11 +50,36 @@ function LoginRoute() {
   return <LoginPage />;
 }
 
+function RegisterVendorRoute() {
+  const { isAuthenticated, user, isInitializing } = useAuth();
+  if (isInitializing) return <PageLoader />;
+  if (isAuthenticated) {
+    return (
+      <Navigate to={user?.role === "VENDOR" ? "/vendor/dashboard" : "/contractor/dashboard"} replace />
+    );
+  }
+  return <RegisterVendorPage />;
+}
+
+function RegisterContractorRoute() {
+  const { isAuthenticated, user, isInitializing } = useAuth();
+  if (isInitializing) return <PageLoader />;
+  if (isAuthenticated) {
+    return (
+      <Navigate to={user?.role === "VENDOR" ? "/vendor/dashboard" : "/contractor/dashboard"} replace />
+    );
+  }
+  return <RegisterContractorPage />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/register" element={<RegisterContractorRoute />} />
+      <Route path="/register/contractor" element={<RegisterContractorRoute />} />
+      <Route path="/register/vendor" element={<RegisterVendorRoute />} />
 
       {/* Vendor routes */}
       <Route

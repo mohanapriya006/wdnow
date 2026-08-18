@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
@@ -130,7 +130,20 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-8 rounded-xl border border-ink-200 bg-white p-4">
+          <div className="mt-4 rounded-xl border border-ink-100 bg-ink-50/70 p-3 text-center text-xs text-ink-600">
+            <span className="font-medium text-ink-700">New to VNDLY CWM? </span>
+            <div className="mt-1 flex items-center justify-center gap-3 text-xs">
+              <Link to="/register/contractor" className="font-semibold text-brand-600 hover:text-brand-700 underline underline-offset-2">
+                Register as Contractor
+              </Link>
+              <span className="text-ink-300">•</span>
+              <Link to="/register/vendor" className="font-semibold text-brand-600 hover:text-brand-700 underline underline-offset-2">
+                Register as Vendor
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-ink-200 bg-white p-4">
             <p className="text-xs font-semibold text-ink-700">Demo credentials</p>
             <p className="mt-0.5 text-[11px] text-ink-400">
               One click fills the form — this app has no separate login pages per role.

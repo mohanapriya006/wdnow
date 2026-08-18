@@ -15,11 +15,51 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class VendorRegisterRequest(BaseModel):
+    company_name: str = Field(min_length=2, max_length=150)
+    contact_name: Optional[str] = None
+    email: EmailStr
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    password: str = Field(min_length=6, max_length=100)
+    confirm_password: Optional[str] = None
+
+
+class ContractorRegisterRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=150)
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=100)
+    confirm_password: Optional[str] = None
+    vendor_id: str
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    skills: Optional[str] = None
+    experience: Optional[str] = None
+
+
+class VendorPublicOut(BaseModel):
+    id: str
+    name: str
+    email: EmailStr
+    status: VendorStatus
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: UserRole
     user_id: str
+    vendor_id: Optional[str] = None
+    contractor_id: Optional[str] = None
+    name: str
+
+
+class UserMeOut(BaseModel):
+    id: str
+    email: EmailStr
+    role: UserRole
     vendor_id: Optional[str] = None
     contractor_id: Optional[str] = None
     name: str

@@ -1,7 +1,12 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { UserRole } from "@/api/types";
-import { login as loginApi } from "@/api/auth";
+import {
+  login as loginApi,
+  registerVendor as registerVendorApi,
+  registerContractor as registerContractorApi,
+} from "@/api/auth";
+import type { RegisterVendorPayload, RegisterContractorPayload } from "@/api/auth";
 import { getStoredToken, setStoredToken, clearStoredToken } from "@/api/client";
 
 interface AuthUser {
@@ -17,6 +22,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isInitializing: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
+  registerVendor: (payload: RegisterVendorPayload) => Promise<AuthUser>;
+  registerContractor: (payload: RegisterContractorPayload) => Promise<AuthUser>;
   logout: () => void;
 }
 
@@ -62,6 +69,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authUser;
   }, []);
 
+  const registerVendor = useCallback(async (payload: RegisterVendorPayload) => {
+    const res = await registerVendorApi(payload);
+    setStoredToken(res.access_token);
+    const authUser: AuthUser = {
+      userId: res.user_id,
+      role: res.role,
+      vendorId: res.vendor_id,
+      contractorId: res.contractor_id,
+      name: res.name,
+    };
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUser));
+    setUser(authUser);
+    return authUser;
+  }, []);
+
+  const registerContractor = useCallback(async (payload: RegisterContractorPayload) => {
+    const res = await registerContractorApi(payload);
+    setStoredToken(res.access_token);
+    const authUser: AuthUser = {
+      userId: res.user_id,
+      role: res.role,
+      vendorId: res.vendor_id,
+      contractorId: res.contractor_id,
+      name: res.name,
+    };
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUser));
+    setUser(authUser);
+    return authUser;
+  }, []);
+
   const logout = useCallback(() => {
     clearStoredToken();
     localStorage.removeItem(USER_STORAGE_KEY);
@@ -70,7 +107,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, isInitializing, login, logout }}
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isInitializing,
+        login,
+        registerVendor,
+        registerContractor,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -113,32 +113,9 @@ def add_contractor(
     return contractor
 
 
-@router.get("/api/contractors/{contractor_id}", response_model=ContractorOut)
-def get_contractor(
-    contractor_id: str,
-    current_user: CurrentUser = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    contractor = db.query(Contractor).filter(Contractor.id == contractor_id).first()
-    if not contractor:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contractor not found.")
-
-    if current_user.role == UserRole.VENDOR:
-        assert_vendor_owns_contractor(current_user.vendor_id, contractor.vendor_id)
-    elif current_user.role == UserRole.CONTRACTOR:
-        if current_user.contractor_id != contractor.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You may only view your own contractor profile.",
-            )
-    else:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
-
-    return contractor
-
-
 # ---------------------------------------------------------------------------
 # Contractor "self" endpoints
+# (Must be defined BEFORE /api/contractors/{contractor_id} to avoid shadowing)
 # ---------------------------------------------------------------------------
 
 @router.get("/api/contractors/me", response_model=ContractorMeOut)
@@ -152,7 +129,7 @@ def get_my_contractor_profile(
 
     return ContractorMeOut(
         **ContractorOut.model_validate(contractor).model_dump(),
-        vendor_name=contractor.vendor.name,
+        vendor_name=contractor.vendor.name if contractor.vendor else "",
     )
 
 
@@ -187,3 +164,32 @@ def get_my_assignment(
         created_at=assignment.created_at,
     )
     return ContractorAssignmentOut(has_assignment=True, assignment=view)
+
+
+# ---------------------------------------------------------------------------
+# Contractor detail by ID
+# ---------------------------------------------------------------------------
+
+@router.get("/api/contractors/{contractor_id}", response_model=ContractorOut)
+def get_contractor(
+    contractor_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    contractor = db.query(Contractor).filter(Contractor.id == contractor_id).first()
+    if not contractor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contractor not found.")
+
+    if current_user.role == UserRole.VENDOR:
+        assert_vendor_owns_contractor(current_user.vendor_id, contractor.vendor_id)
+    elif current_user.role == UserRole.CONTRACTOR:
+        if current_user.contractor_id != contractor.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You may only view your own contractor profile.",
+            )
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+
+    return contractor
+
