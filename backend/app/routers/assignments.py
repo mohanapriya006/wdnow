@@ -103,8 +103,10 @@ def create_assignment(
 
     # Trigger Twilio SMS notification to contractor asynchronously/safely
     try:
-        vendor_name = assignment.vendor.name if assignment.vendor else "Your Vendor"
-        send_contractor_assignment_sms(
+        from app.models import Vendor
+        vendor_obj = db.query(Vendor).filter(Vendor.id == current_user.vendor_id).first()
+        vendor_name = vendor_obj.name if vendor_obj else "Your Vendor"
+        sms_result = send_contractor_assignment_sms(
             contractor_name=contractor.name,
             contractor_phone=contractor.phone,
             project_name=assignment.project_name,
@@ -114,8 +116,9 @@ def create_assignment(
             currency=assignment.currency,
             start_date=str(assignment.start_date),
         )
-    except Exception:
-        pass
+        print(f"[SMS Notification Result] Contractor: {contractor.name}, Result: {sms_result}")
+    except Exception as err:
+        print(f"[SMS Notification Error] {err}")
 
     return _to_detail(assignment)
 
