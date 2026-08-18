@@ -17,11 +17,14 @@ import { VendorAssignmentDetail } from "@/pages/vendor/VendorAssignmentDetail";
 import { VendorProjects } from "@/pages/vendor/VendorProjects";
 import { VendorProjectDetail } from "@/pages/vendor/VendorProjectDetail";
 import { VendorTimesheets } from "@/pages/vendor/VendorTimesheets";
+import { VendorInvoices } from "@/pages/vendor/VendorInvoices";
+import { VendorMilestones } from "@/pages/vendor/VendorMilestones";
 
 import { ContractorDashboard } from "@/pages/contractor/ContractorDashboard";
 import { ContractorProfile } from "@/pages/contractor/ContractorProfile";
 import { ContractorAssignment } from "@/pages/contractor/ContractorAssignment";
 import { ContractorTimesheets } from "@/pages/contractor/ContractorTimesheets";
+import { ContractorInvoices } from "@/pages/contractor/ContractorInvoices";
 import { PageLoader } from "@/components/ui/Feedback";
 
 const queryClient = new QueryClient({
@@ -129,15 +132,11 @@ function AppRoutes() {
       />
       <Route
         path="/vendor/milestones"
-        element={<ProtectedRoute allowedRole="VENDOR"><VendorProjects /></ProtectedRoute>}
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorMilestones /></ProtectedRoute>}
       />
       <Route
         path="/vendor/invoices"
-        element={
-          <ProtectedRoute allowedRole="VENDOR">
-            <ComingSoonPage title="Invoices" />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorInvoices /></ProtectedRoute>}
       />
       <Route
         path="/vendor/payroll"
@@ -178,18 +177,14 @@ function AppRoutes() {
         element={<ProtectedRoute allowedRole="CONTRACTOR"><ContractorTimesheets /></ProtectedRoute>}
       />
       <Route
+        path="/contractor/invoices"
+        element={<ProtectedRoute allowedRole="CONTRACTOR"><ContractorInvoices /></ProtectedRoute>}
+      />
+      <Route
         path="/contractor/expenses"
         element={
           <ProtectedRoute allowedRole="CONTRACTOR">
             <ComingSoonPage title="Expenses" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/contractor/milestones"
-        element={
-          <ProtectedRoute allowedRole="CONTRACTOR">
-            <ComingSoonPage title="Milestones" />
           </ProtectedRoute>
         }
       />

@@ -4,7 +4,6 @@ import type {
   ContractorWithAssignmentStatus,
   ContractorMe,
   ContractorAssignmentResponse,
-  Milestone,
 } from "./types";
 
 export async function listMyContractors(): Promise<ContractorWithAssignmentStatus[]> {
@@ -50,4 +49,3 @@ export async function getMyContractorAssignment(): Promise<ContractorAssignmentR
   );
   return data;
 }
-export async function getMyMilestones(): Promise<Milestone[]> { return (await apiClient.get("/api/contractors/me/milestones")).data; }

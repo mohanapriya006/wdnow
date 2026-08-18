@@ -49,16 +49,18 @@ const vendorNav: NavItem[] = [
   { label: "Assignments", to: "/vendor/assignments", icon: icons.assignments },
   { label: "Timesheets", to: "/vendor/timesheets", icon: icons.timesheets },
   { label: "Milestones", to: "/vendor/milestones", icon: icons.milestones },
-  { label: "Invoices", to: "/vendor/invoices", icon: icons.invoices, comingSoon: true },
+  { label: "Invoices", to: "/vendor/invoices", icon: icons.invoices },
   { label: "Payroll", to: "/vendor/payroll", icon: icons.payroll, comingSoon: true },
 ];
 
+// Milestones are a vendor planning artefact and are intentionally absent here:
+// the worker has no milestone route, API access, or navigation entry.
 const contractorNav: NavItem[] = [
   { label: "Dashboard", to: "/contractor/dashboard", icon: icons.dashboard },
   { label: "My Assignment", to: "/contractor/assignment", icon: icons.assignments },
   { label: "Timesheets", to: "/contractor/timesheets", icon: icons.timesheets },
+  { label: "Invoices", to: "/contractor/invoices", icon: icons.invoices },
   { label: "Expenses", to: "/contractor/expenses", icon: icons.expenses, comingSoon: true },
-  { label: "Milestones", to: "/contractor/milestones", icon: icons.milestones, comingSoon: true },
   { label: "Payroll", to: "/contractor/payroll", icon: icons.payroll, comingSoon: true },
 ];
 

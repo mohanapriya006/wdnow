@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import CurrentUser, require_vendor
-from app.models import Vendor, Contractor, Assignment, AssignmentStatus, ContractorStatus
+from app.models import (
+    Vendor, Contractor, Assignment, AssignmentStatus, ContractorStatus,
+    Timesheet, TimesheetStatus, Invoice, InvoiceStatus,
+)
 from app.schemas import VendorOut, VendorUpdate, VendorDashboardOut
 
 router = APIRouter(prefix="/api/vendors", tags=["vendors"])
@@ -62,12 +65,27 @@ def get_my_dashboard(
         .count()
     )
 
+    # Real counts rather than placeholders, so the dashboard tiles are live.
+    pending_timesheets = (
+        db.query(Timesheet)
+        .filter(Timesheet.vendor_id == vendor.id, Timesheet.status == TimesheetStatus.SUBMITTED)
+        .count()
+    )
+    pending_invoices = (
+        db.query(Invoice)
+        .filter(
+            Invoice.vendor_id == vendor.id,
+            Invoice.status.in_((InvoiceStatus.GENERATED, InvoiceStatus.SUBMITTED, InvoiceStatus.APPROVED)),
+        )
+        .count()
+    )
+
     return VendorDashboardOut(
         vendor=vendor,
         active_contractors_count=active_contractors,
         active_assignments_count=active_assignments,
         total_contractors_count=total_contractors,
         total_assignments_count=total_assignments,
-        pending_timesheets_count=0,
-        pending_invoices_count=0,
+        pending_timesheets_count=pending_timesheets,
+        pending_invoices_count=pending_invoices,
     )

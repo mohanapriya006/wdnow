@@ -5,13 +5,17 @@ from fastapi.exceptions import RequestValidationError
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import auth, vendors, contractors, assignments, projects, timesheets, ai
-from app.migrations import upgrade_schema
+from app.routers import auth, vendors, contractors, assignments, projects, timesheets, invoices, milestones, ai
+from app.migrations import upgrade_schema, upgrade_timesheet_schema, upgrade_invoice_schema
 
 # Create tables if they don't exist yet (idempotent). For a real production
 # rollout you'd use Alembic migrations instead of create_all.
 Base.metadata.create_all(bind=engine)
+# Order matters: every ALTER TABLE must land before a migration step queries the
+# ORM, because the mapped classes already reference the new columns.
 upgrade_schema()
+upgrade_invoice_schema()
+upgrade_timesheet_schema()
 
 app = FastAPI(
     title="VNDLY-Inspired Contingent Workforce Management API",
@@ -46,6 +50,8 @@ app.include_router(contractors.router)
 app.include_router(assignments.router)
 app.include_router(projects.router)
 app.include_router(timesheets.router)
+app.include_router(invoices.router)
+app.include_router(milestones.router)
 app.include_router(ai.router)
 
 

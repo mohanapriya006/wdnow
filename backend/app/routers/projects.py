@@ -91,6 +91,12 @@ def update_milestone(project_id: str, milestone_id: str, payload: MilestoneUpdat
     updates = payload.model_dump(exclude_unset=True)
     if updates.get("due_date", milestone.due_date) < updates.get("start_date", milestone.start_date): raise HTTPException(status_code=400, detail="Due date cannot be before start date.")
     for field, value in updates.items(): setattr(milestone, field, value)
+    # Stamp the actual delivery date the first time it completes, and clear it
+    # if the milestone is reopened, so planned-vs-actual analytics stay honest.
+    if milestone.status == MilestoneStatus.COMPLETED:
+        milestone.completed_at = milestone.completed_at or date.today()
+    else:
+        milestone.completed_at = None
     all_milestones = db.query(Milestone).filter(Milestone.project_id == project_id).all()
     if all_milestones and all(item.status == MilestoneStatus.COMPLETED for item in all_milestones):
         milestone.project.status = ProjectStatus.COMPLETED

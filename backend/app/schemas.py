@@ -3,7 +3,11 @@ from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
-from app.models import UserRole, VendorStatus, ContractorStatus, AssignmentStatus, ProjectStatus, MilestoneStatus, TimesheetStatus, TimesheetPriority
+from app.models import (
+    UserRole, VendorStatus, ContractorStatus, AssignmentStatus, ProjectStatus,
+    MilestoneStatus, TimesheetStatus, TimesheetPriority, InvoiceStatus,
+    InvoiceLineType, TaxRuleType,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -280,14 +284,32 @@ class ContractorAssignmentView(BaseModel):
 # Timesheets
 # ---------------------------------------------------------------------------
 class TimeEntryCreate(BaseModel):
+    """A single day of work.
+
+    The contractor supplies start and end time; the backend derives the hours.
+    ``manual_hours`` is retained for backwards compatibility with existing API
+    clients but start/end time is the supported path.
+    """
     work_date: date
-    clock_in: Optional[str] = None
-    clock_out: Optional[str] = None
+    start_time: Optional[str] = Field(default=None, description="HH:MM, 24-hour")
+    end_time: Optional[str] = Field(default=None, description="HH:MM, 24-hour")
+    clock_in: Optional[str] = None   # legacy alias for start_time
+    clock_out: Optional[str] = None  # legacy alias for end_time
     manual_hours: Optional[float] = Field(default=None, gt=0, le=24)
     break_minutes: int = Field(default=0, ge=0, le=720)
-    milestone_id: Optional[str] = None
+    # No milestone_id: milestones are vendor-only, so a worker cannot attribute
+    # time to one. The stored column is still surfaced on the vendor's views.
     work_location: Optional[str] = None
     notes: Optional[str] = None
+
+
+class AnomalyOut(BaseModel):
+    """One detected problem, always carrying its own explanation."""
+    type: str
+    severity: str
+    date: date
+    hours: float
+    reason: str
 
 
 class TimeEntryOut(BaseModel):
@@ -296,6 +318,10 @@ class TimeEntryOut(BaseModel):
     work_date: date
     milestone_id: Optional[str] = None
     milestone_name: Optional[str] = None
+    # start_time / end_time mirror clock_in / clock_out under the names the
+    # Timesheet UI uses. worked_hours is deliberately not exposed.
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
     clock_in: Optional[str] = None
     clock_out: Optional[str] = None
     break_minutes: int
@@ -306,6 +332,11 @@ class TimeEntryOut(BaseModel):
     notes: Optional[str] = None
     is_flagged: int
     flag_reason: Optional[str] = None
+    is_holiday: bool = False
+    holiday_name: Optional[str] = None
+    has_anomaly: bool = False
+    anomaly_severity: Optional[str] = None
+    anomalies: List[AnomalyOut] = []
 
 
 class TimesheetOut(BaseModel):
@@ -313,18 +344,30 @@ class TimesheetOut(BaseModel):
     assignment_id: str
     project_id: Optional[str] = None
     project_name: str
+    contractor_id: str
     contractor_name: str
     week_start: date
     week_end: date
     status: TimesheetStatus
+    #: PENDING / APPROVED / REJECTED / DRAFT as shown to the contractor.
+    display_status: str = "DRAFT"
     contractor_summary: Optional[str] = None
     vendor_comment: Optional[str] = None
     submitted_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
+    rejected_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    weekly_capacity: int = 40
     regular_hours: float = 0
     overtime_hours: float = 0
     total_hours: float = 0
     compensation: float = 0
+    currency: str = "INR"
+    days_logged: int = 0
+    has_anomalies: bool = False
+    anomaly_count: int = 0
+    anomaly_severity: Optional[str] = None
+    anomalies: List[AnomalyOut] = []
     entries: List[TimeEntryOut] = []
     audit_history: List[str] = []
 
@@ -334,9 +377,29 @@ class TimesheetSubmit(BaseModel):
 
 
 class TimesheetReview(BaseModel):
-    action: str = Field(pattern="^(APPROVE|FLAG)$")
-    comment: Optional[str] = None
+    """APPROVE or REJECT a weekly report. REJECT always requires a reason."""
+    action: str = Field(pattern="^(APPROVE|REJECT|FLAG)$")
+    reason: Optional[str] = None
+    comment: Optional[str] = None  # legacy alias for reason
     entry_id: Optional[str] = None
+
+
+class ContractorTimesheetSummary(BaseModel):
+    """One contractor inside a project, for the vendor drill-down."""
+    contractor_id: str
+    contractor_name: str
+    assignment_id: str
+    role: str
+    weekly_capacity: int
+    total_weeks: int
+    normal_reports: int
+    anomaly_reports: int
+    pending_reports: int
+    approved_reports: int
+    rejected_reports: int
+    total_hours: float
+    approved_hours: float
+    last_submitted_at: Optional[datetime] = None
 
 
 class ProjectTimesheetAnalytics(BaseModel):
@@ -351,8 +414,298 @@ class ProjectTimesheetAnalytics(BaseModel):
     labor_cost: float
     utilization: float
     timesheet_compliance: float
+    anomaly_reports: int = 0
+    pending_reports: int = 0
 
 
 class ContractorAssignmentOut(BaseModel):
     has_assignment: bool
     assignment: Optional[ContractorAssignmentView] = None
+
+
+# ---------------------------------------------------------------------------
+# Worker performance (analytical KPI - never alters a contractual rate)
+# ---------------------------------------------------------------------------
+
+class PerformanceComponentOut(BaseModel):
+    key: str
+    label: str
+    weight: float
+    #: 0-100, or null when the underlying data does not exist for this worker.
+    value: Optional[float] = None
+    #: Share of the final score this component actually carried.
+    applied_weight: float = 0
+    detail: str
+
+
+class PerformanceScoreOut(BaseModel):
+    contractor_id: str
+    contractor_name: Optional[str] = None
+    score: Optional[float] = None
+    band: str
+    components: List[PerformanceComponentOut] = []
+    reports_considered: int = 0
+    calculated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Invoicing
+# ---------------------------------------------------------------------------
+
+class InvoiceTaxRuleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    code: str
+    label: str
+    rule_type: TaxRuleType
+    rate_percent: float
+    is_active: bool
+    sort_order: int
+
+
+class InvoiceTaxRuleUpsert(BaseModel):
+    code: str = Field(min_length=1, max_length=20)
+    label: str = Field(min_length=1, max_length=120)
+    rule_type: TaxRuleType
+    rate_percent: float = Field(ge=0, le=100)
+    is_active: bool = True
+    sort_order: int = 0
+
+
+class InvoiceLineOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    line_type: InvoiceLineType
+    description: str
+    week_start: Optional[date] = None
+    week_end: Optional[date] = None
+    quantity: float
+    rate: float
+    amount: float
+    timesheet_id: Optional[str] = None
+
+
+class InvoiceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    invoice_number: str
+    vendor_id: str
+    vendor_name: Optional[str] = None
+    contractor_id: str
+    contractor_name: Optional[str] = None
+    assignment_id: str
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    role: Optional[str] = None
+
+    period_start: date
+    period_end: date
+    invoice_date: date
+    due_date: date
+    currency: str
+
+    regular_hours: float
+    overtime_hours: float
+    total_hours: float
+    hourly_rate: float
+    overtime_multiplier: float
+
+    base_amount: float
+    overtime_amount: float
+    gross_amount: float
+    taxable_amount: float
+    tax_amount: float
+    deduction_amount: float
+    adjustment_amount: float
+    net_payable: float
+
+    performance_score: Optional[float] = None
+    performance_adjusted_amount: Optional[float] = None
+
+    status: InvoiceStatus
+    notes: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    payment_reference: Optional[str] = None
+    payment_date: Optional[date] = None
+
+    is_overdue: bool = False
+    weeks_billed: int = 0
+
+    generated_at: Optional[datetime] = None
+    submitted_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    rejected_at: Optional[datetime] = None
+    created_at: datetime
+
+    lines: List[InvoiceLineOut] = []
+    audit_history: List[str] = []
+
+
+class BillableWeekOut(BaseModel):
+    """One approved, un-invoiced weekly report awaiting billing."""
+    timesheet_id: str
+    week_start: date
+    week_end: date
+    regular_hours: float
+    overtime_hours: float
+    total_hours: float
+    approved_at: Optional[datetime] = None
+    had_anomalies: bool = False
+
+
+class BillableAssignmentOut(BaseModel):
+    """A contractor with approved hours ready to invoice."""
+    assignment_id: str
+    contractor_id: str
+    contractor_name: str
+    project_id: Optional[str] = None
+    project_name: str
+    role: str
+    currency: str
+    hourly_rate: float
+    weekly_capacity: int
+    weeks: List[BillableWeekOut] = []
+    regular_hours: float = 0
+    overtime_hours: float = 0
+    total_hours: float = 0
+    estimated_gross: float = 0
+    estimated_net: float = 0
+    performance_score: Optional[float] = None
+    earliest_week: Optional[date] = None
+    latest_week: Optional[date] = None
+
+
+class InvoicePreviewRequest(BaseModel):
+    """Review an invoice before it is generated. Nothing is persisted."""
+    assignment_id: str
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    adjustment_amount: float = 0
+    adjustment_note: Optional[str] = None
+    overtime_multiplier: Optional[float] = Field(default=None, ge=1, le=3)
+
+
+class InvoiceGenerateRequest(InvoicePreviewRequest):
+    invoice_date: Optional[date] = None
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class InvoicePreviewOut(BaseModel):
+    """Server-calculated preview. The same engine produces the stored invoice."""
+    assignment_id: str
+    contractor_id: str
+    contractor_name: str
+    project_id: Optional[str] = None
+    project_name: str
+    currency: str
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    hourly_rate: float
+    overtime_multiplier: float
+    regular_hours: float
+    overtime_hours: float
+    total_hours: float
+    base_amount: float
+    overtime_amount: float
+    gross_amount: float
+    taxable_amount: float
+    tax_amount: float
+    deduction_amount: float
+    adjustment_amount: float
+    net_payable: float
+    weeks_billed: int
+    performance_score: Optional[float] = None
+    performance_adjusted_amount: Optional[float] = None
+    lines: List[InvoiceLineOut] = []
+    warnings: List[str] = []
+
+
+class InvoiceTransitionRequest(BaseModel):
+    """Move an invoice along the lifecycle. REJECT always needs a reason."""
+    action: str = Field(pattern="^(SUBMIT|APPROVE|REJECT|MARK_PAID)$")
+    reason: Optional[str] = None
+    payment_reference: Optional[str] = None
+    payment_date: Optional[date] = None
+
+
+class InvoiceSummaryOut(BaseModel):
+    """Headline financials for the vendor invoice dashboard."""
+    total_invoices: int = 0
+    generated_count: int = 0
+    submitted_count: int = 0
+    approved_count: int = 0
+    paid_count: int = 0
+    rejected_count: int = 0
+    overdue_count: int = 0
+    gross_total: float = 0
+    tax_total: float = 0
+    deduction_total: float = 0
+    net_total: float = 0
+    paid_total: float = 0
+    outstanding_total: float = 0
+    billable_contractors: int = 0
+    billable_hours: float = 0
+    billable_estimated_net: float = 0
+    currency: str = "INR"
+
+
+# ---------------------------------------------------------------------------
+# Milestone analytics (vendor)
+# ---------------------------------------------------------------------------
+
+class MilestoneRowOut(BaseModel):
+    id: str
+    project_id: str
+    project_name: str
+    name: str
+    description: Optional[str] = None
+    start_date: date
+    due_date: date
+    completed_at: Optional[date] = None
+    priority: TimesheetPriority
+    status: MilestoneStatus
+    #: Negative = delivered early, positive = late. Null while still open.
+    variance_days: Optional[int] = None
+    days_to_due: Optional[int] = None
+    is_overdue: bool = False
+    risk: str = "ON_TRACK"
+    assigned_contractors: List[str] = []
+    logged_hours: float = 0
+
+
+class ProjectMilestoneProgressOut(BaseModel):
+    project_id: str
+    project_name: str
+    project_status: ProjectStatus
+    start_date: date
+    end_date: Optional[date] = None
+    total_milestones: int = 0
+    completed: int = 0
+    in_progress: int = 0
+    upcoming: int = 0
+    overdue: int = 0
+    at_risk: int = 0
+    completion_percent: float = 0
+    on_time_percent: Optional[float] = None
+    avg_variance_days: Optional[float] = None
+    assigned_contractors: int = 0
+    next_due: Optional[date] = None
+    risk: str = "ON_TRACK"
+
+
+class MilestoneDashboardOut(BaseModel):
+    total_projects: int = 0
+    total_milestones: int = 0
+    completed: int = 0
+    in_progress: int = 0
+    upcoming: int = 0
+    overdue: int = 0
+    at_risk: int = 0
+    completion_percent: float = 0
+    on_time_percent: Optional[float] = None
+    projects: List[ProjectMilestoneProgressOut] = []
+    upcoming_deadlines: List[MilestoneRowOut] = []
+    recent_activity: List[MilestoneRowOut] = []
+    milestones: List[MilestoneRowOut] = []
