@@ -326,11 +326,26 @@ class TimeEntryCreate(BaseModel):
     work_date: date
     clock_in: Optional[str] = None
     clock_out: Optional[str] = None
-    manual_hours: Optional[float] = Field(default=None, gt=0, le=24)
+    manual_hours: Optional[float] = Field(default=None, ge=0, le=24)
     break_minutes: int = Field(default=0, ge=0, le=720)
     milestone_id: Optional[str] = None
     work_location: Optional[str] = None
     notes: Optional[str] = None
+
+
+class WeeklyDayEntry(BaseModel):
+    work_date: date
+    hours: float = Field(default=0, ge=0, le=24)
+    notes: Optional[str] = None
+    work_location: Optional[str] = None
+    milestone_id: Optional[str] = None
+
+
+class WeeklyTimesheetBatchCreate(BaseModel):
+    week_start: date
+    entries: List[WeeklyDayEntry]
+    submit_now: bool = False
+    contractor_summary: Optional[str] = None
 
 
 class TimeEntryOut(BaseModel):
@@ -356,6 +371,7 @@ class TimesheetOut(BaseModel):
     assignment_id: str
     project_id: Optional[str] = None
     project_name: str
+    contractor_id: Optional[str] = None
     contractor_name: str
     week_start: date
     week_end: date
@@ -367,7 +383,14 @@ class TimesheetOut(BaseModel):
     regular_hours: float = 0
     overtime_hours: float = 0
     total_hours: float = 0
-    compensation: float = 0
+    pay_rate: float = 0
+    bill_rate: float = 0
+    currency: str = "INR"
+    compensation: float = 0       # contractor total earnings
+    labor_cost: float = 0         # same as compensation
+    bill_amount: float = 0        # client billed amount
+    gross_margin: float = 0       # bill_amount - labor_cost
+    gross_margin_percent: float = 0
     entries: List[TimeEntryOut] = []
     audit_history: List[str] = []
 
@@ -380,6 +403,18 @@ class TimesheetReview(BaseModel):
     action: str = Field(pattern="^(APPROVE|FLAG)$")
     comment: Optional[str] = None
     entry_id: Optional[str] = None
+
+
+class VendorTimesheetSummaryOut(BaseModel):
+    total_timesheets: int
+    pending_count: int
+    approved_count: int
+    flagged_count: int
+    total_hours: float
+    total_labor_cost: float
+    total_bill_amount: float
+    total_gross_margin: float
+    currency: str = "INR"
 
 
 class ProjectTimesheetAnalytics(BaseModel):
@@ -399,3 +434,4 @@ class ProjectTimesheetAnalytics(BaseModel):
 class ContractorAssignmentOut(BaseModel):
     has_assignment: bool
     assignment: Optional[ContractorAssignmentView] = None
+
