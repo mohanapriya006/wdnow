@@ -14,6 +14,7 @@ from app.models import (
     TimesheetPriority,
     InvoiceStatus,
     PayrollStatus,
+    NotificationCategory,
 )
 
 
@@ -590,5 +591,29 @@ class VendorPayrollSummaryOut(BaseModel):
     pending_disbursement: float
     active_contractors_paid: int
     currency: str = "INR"
+
+
+# ---------------------------------------------------------------------------
+# Notifications
+# ---------------------------------------------------------------------------
+
+class NotificationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    user_id: str
+    title: str
+    message: str
+    category: NotificationCategory
+    link_url: Optional[str] = None
+    is_read: int
+    created_at: datetime
+
+
+class NotificationListOut(BaseModel):
+    unread_count: int
+    total_count: int
+    items: List[NotificationOut] = []
+
 
 

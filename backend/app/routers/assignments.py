@@ -113,8 +113,37 @@ def create_assignment(
     # Keep the contractor's headline status in sync with having a live assignment.
     contractor.status = ContractorStatus.ACTIVE
 
+    # Push In-App Notification
+    from app.routers.notifications import push_notification_for_contractor
+    from app.models import NotificationCategory
+    push_notification_for_contractor(
+        db,
+        contractor_id=contractor.id,
+        title=f"🚀 New Project Assignment: {project.name}",
+        message=f"You have been assigned to {project.name} as {project.role} by {contractor.vendor.name if contractor.vendor else 'your vendor'}.",
+        category=NotificationCategory.ASSIGNMENT,
+        link_url="/contractor/assignment",
+    )
+
     db.commit()
     db.refresh(assignment)
+
+    # Send Email Notification
+    try:
+        from app.services.email_service import send_assignment_email
+        send_assignment_email(
+            contractor_email=contractor.email,
+            contractor_name=contractor.name,
+            project_name=project.name,
+            role=project.role,
+            pay_rate=project.pay_rate,
+            currency=project.currency,
+            start_date=str(payload.start_date),
+            vendor_name=contractor.vendor.name if contractor.vendor else "Your Staffing Vendor",
+        )
+    except Exception as e:
+        pass
+
     return _to_detail(assignment)
 
 

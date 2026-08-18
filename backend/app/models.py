@@ -394,3 +394,31 @@ class PayrollItem(Base):
     assignment = relationship("Assignment")
     timesheet = relationship("Timesheet")
 
+
+# ---------------------------------------------------------------------------
+# In-App Notifications
+# ---------------------------------------------------------------------------
+
+class NotificationCategory(str, enum.Enum):
+    ASSIGNMENT = "ASSIGNMENT"
+    TIMESHEET = "TIMESHEET"
+    PAYROLL = "PAYROLL"
+    INVOICE = "INVOICE"
+    SYSTEM = "SYSTEM"
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(String, primary_key=True, default=lambda: gen_id("NOTIF"))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    category = Column(SAEnum(NotificationCategory), default=NotificationCategory.SYSTEM, nullable=False)
+    link_url = Column(String, nullable=True)
+    is_read = Column(Integer, default=0, nullable=False)  # 0=unread, 1=read
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User")
+
+

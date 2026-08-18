@@ -162,8 +162,39 @@ def generate_invoice_from_timesheets(
     )
 
     db.add(invoice)
+
+    # In-App Notification for Vendor
+    from app.routers.notifications import push_notification
+    from app.models import NotificationCategory
+    push_notification(
+        db,
+        user_id=current.user_id,
+        title=f"🧾 Invoice Generated: {inv_num}",
+        message=f"Invoice {inv_num} for {payload.client_name} ({currency} {total_amount:,.2f}) has been generated.",
+        category=NotificationCategory.INVOICE,
+        link_url="/vendor/invoices",
+    )
+
     db.commit()
     db.refresh(invoice)
+
+    # Send Email to client if client_email is provided
+    try:
+        if payload.client_email:
+            from app.services.email_service import send_invoice_issued_email
+            send_invoice_issued_email(
+                client_email=payload.client_email,
+                client_name=payload.client_name,
+                invoice_number=inv_num,
+                billing_period=f"{payload.billing_period_start} to {payload.billing_period_end}",
+                total_amount=total_amount,
+                currency=currency,
+                due_date=str(payload.due_date),
+                vendor_name=current.user_id,
+            )
+    except Exception:
+        pass
+
     return invoice
 
 

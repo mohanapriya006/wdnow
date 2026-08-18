@@ -545,6 +545,43 @@ def review(
                 entry.flag_reason = payload.comment
         audit(db, sheet, "VENDOR", "REVISION_REQUESTED", payload.comment)
 
+    # In-App Notification for Contractor
+    if sheet.assignment and sheet.assignment.contractor_id:
+        from app.routers.notifications import push_notification_for_contractor
+        from app.models import NotificationCategory
+        notif_title = "✓ Timesheet Approved" if payload.action == "APPROVE" else "⚠️ Timesheet Revision Requested"
+        notif_msg = f"Your timesheet for week of {sheet.week_start} has been {sheet.status.value.lower()}."
+        if payload.comment:
+            notif_msg += f" Note: {payload.comment}"
+        push_notification_for_contractor(
+            db,
+            contractor_id=sheet.assignment.contractor_id,
+            title=notif_title,
+            message=notif_msg,
+            category=NotificationCategory.TIMESHEET,
+            link_url="/contractor/timesheets",
+        )
+
     db.commit()
     db.refresh(sheet)
+
+    # Send Email Notification to Contractor
+    try:
+        if sheet.assignment and sheet.assignment.contractor:
+            from app.services.email_service import send_timesheet_review_email
+            total_hours = sum(e.total_hours for e in sheet.entries)
+            pay_rate = sheet.assignment.pay_rate or 0.0
+            send_timesheet_review_email(
+                contractor_email=sheet.assignment.contractor.email,
+                contractor_name=sheet.assignment.contractor.name,
+                week_period=f"{sheet.week_start} to {sheet.week_end}",
+                status=sheet.status.value,
+                total_hours=total_hours,
+                compensation=total_hours * pay_rate,
+                currency=sheet.assignment.currency or "INR",
+                vendor_comment=payload.comment,
+            )
+    except Exception:
+        pass
+
     return serialise(sheet)

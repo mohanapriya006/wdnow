@@ -223,8 +223,41 @@ def execute_payroll_run(
     )
 
     db.add(payroll_run)
+
+    # In-App Notifications for each contractor
+    from app.routers.notifications import push_notification_for_contractor
+    from app.models import NotificationCategory
+    for item in items_to_create:
+        push_notification_for_contractor(
+            db,
+            contractor_id=item.contractor_id,
+            title=f"💳 Wage Payout Processed: {item.currency} {item.net_payout:,.2f}",
+            message=f"Your wage payout for {item.period_start} to {item.period_end} has been disbursed via direct bank transfer.",
+            category=NotificationCategory.PAYROLL,
+            link_url="/contractor/payroll",
+        )
+
     db.commit()
     db.refresh(payroll_run)
+
+    # Send Email to each contractor
+    try:
+        from app.services.email_service import send_pay_slip_email
+        for item in payroll_run.items:
+            if item.contractor:
+                send_pay_slip_email(
+                    contractor_email=item.contractor.email,
+                    contractor_name=item.contractor.name,
+                    period=f"{item.period_start} to {item.period_end}",
+                    gross_pay=item.gross_pay,
+                    tax_withheld=item.tax_withheld,
+                    net_payout=item.net_payout,
+                    currency=item.currency,
+                    bank_reference=item.bank_reference,
+                )
+    except Exception:
+        pass
+
     return payroll_run
 
 

@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { cn, initials } from "@/lib/utils";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface NavItem {
   label: string;
@@ -159,7 +160,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="hidden md:block" />
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <NotificationBell />
             <div className="text-right">
               <p className="text-sm font-semibold leading-tight text-ink-900">{user.name}</p>
               <p className="text-[11px] font-medium uppercase tracking-wide text-ink-400">

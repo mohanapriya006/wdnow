@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import auth, vendors, contractors, assignments, projects, timesheets, invoices, payroll
+from app.routers import auth, vendors, contractors, assignments, projects, timesheets, invoices, payroll, notifications
 from app.migrations import upgrade_schema
 
 # Create tables if they don't exist yet (idempotent). For a real production
@@ -48,6 +48,7 @@ app.include_router(projects.router)
 app.include_router(timesheets.router)
 app.include_router(invoices.router)
 app.include_router(payroll.router)
+app.include_router(notifications.router)
 
 
 @app.get("/api/health", tags=["health"])

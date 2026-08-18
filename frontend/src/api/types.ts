@@ -342,3 +342,26 @@ export interface VendorPayrollSummary {
   active_contractors_paid: number;
   currency: string;
 }
+
+// ---------------------------------------------------------------------------
+// In-App Notifications
+// ---------------------------------------------------------------------------
+
+export type NotificationCategory = "ASSIGNMENT" | "TIMESHEET" | "PAYROLL" | "INVOICE" | "SYSTEM";
+
+export interface NotificationItem {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  category: NotificationCategory;
+  link_url?: string | null;
+  is_read: number;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  unread_count: number;
+  total_count: number;
+  items: NotificationItem[];
+}
