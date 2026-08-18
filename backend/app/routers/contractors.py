@@ -18,6 +18,7 @@ from app.models import (
     ContractorStatus,
     Assignment,
     AssignmentStatus,
+    Milestone,
 )
 from app.schemas import (
     ContractorCreate,
@@ -26,6 +27,7 @@ from app.schemas import (
     ContractorMeOut,
     ContractorAssignmentOut,
     ContractorAssignmentView,
+    MilestoneOut,
 )
 from app.security import hash_password
 
@@ -141,19 +143,52 @@ def get_contractor(
 # Contractor "self" endpoints
 # ---------------------------------------------------------------------------
 
+# @router.get("/api/contractors/me", response_model=ContractorMeOut)
+# def get_my_contractor_profile(
+#     current_user: CurrentUser = Depends(require_contractor),
+#     db: Session = Depends(get_db),
+# ):
+#     contractor = db.query(Contractor).filter(Contractor.id == current_user.contractor_id).first()
+#     if not contractor:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contractor profile not found.")
+
+#     return ContractorMeOut(
+#         **ContractorOut.model_validate(contractor).model_dump(),
+#         vendor_name=contractor.vendor.name,
+#     )
+
+
+
 @router.get("/api/contractors/me", response_model=ContractorMeOut)
 def get_my_contractor_profile(
     current_user: CurrentUser = Depends(require_contractor),
     db: Session = Depends(get_db),
 ):
-    contractor = db.query(Contractor).filter(Contractor.id == current_user.contractor_id).first()
+    print("DEBUG contractor_id:", current_user.contractor_id)
+
+    contractor = (
+        db.query(Contractor)
+        .filter(Contractor.id == current_user.contractor_id)
+        .first()
+    )
+
+    print("DEBUG contractor:", contractor)
+
     if not contractor:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contractor profile not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contractor profile not found.",
+        )
+
+    print("DEBUG vendor:", contractor.vendor)
 
     return ContractorMeOut(
         **ContractorOut.model_validate(contractor).model_dump(),
         vendor_name=contractor.vendor.name,
     )
+
+
+
 
 
 @router.get("/api/contractors/me/assignment", response_model=ContractorAssignmentOut)
@@ -191,3 +226,11 @@ def get_my_assignment(
         work_mode=assignment.work_mode,
     )
     return ContractorAssignmentOut(has_assignment=True, assignment=view)
+
+
+@router.get("/api/contractors/me/milestones", response_model=List[MilestoneOut])
+def get_my_project_milestones(current_user: CurrentUser = Depends(require_contractor), db: Session = Depends(get_db)):
+    assignment = db.query(Assignment).filter(Assignment.contractor_id == current_user.contractor_id, Assignment.status == AssignmentStatus.ACTIVE).first()
+    if not assignment or not assignment.project_id:
+        return []
+    return db.query(Milestone).filter(Milestone.project_id == assignment.project_id).order_by(Milestone.start_date).all()

@@ -18,6 +18,9 @@ from app.models import (
     Contractor,
     Assignment,
     Project,
+    Milestone,
+    TimesheetPriority,
+    MilestoneStatus,
     User,
     UserRole,
     VendorStatus,
@@ -109,6 +112,13 @@ def run_seed():
             pay_rate=1500.0, bill_rate=2000.0, currency="INR",
         )
         db.add(project)
+        db.add_all([
+            Milestone(project_id=project.id, name="Requirements & Design", start_date=date(2026,9,1), due_date=date(2026,9,30), description="Finalize architecture and requirements", priority=TimesheetPriority.HIGH, status=MilestoneStatus.UPCOMING),
+            Milestone(project_id=project.id, name="Core Development", start_date=date(2026,10,1), due_date=date(2026,11,30), description="Complete payment engine", priority=TimesheetPriority.CRITICAL, status=MilestoneStatus.UPCOMING),
+            Milestone(project_id=project.id, name="Integration", start_date=date(2026,12,1), due_date=date(2027,1,15), description="Integrate Kafka and Redis services", priority=TimesheetPriority.HIGH, status=MilestoneStatus.UPCOMING),
+            Milestone(project_id=project.id, name="Testing & QA", start_date=date(2027,1,16), due_date=date(2027,2,10), description="Complete testing", priority=TimesheetPriority.HIGH, status=MilestoneStatus.UPCOMING),
+            Milestone(project_id=project.id, name="Production Release", start_date=date(2027,2,11), due_date=date(2027,2,28), description="Go-live", priority=TimesheetPriority.CRITICAL, status=MilestoneStatus.UPCOMING),
+        ])
 
         assignment = Assignment(
             id="A001",

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMyContractorAssignment } from "@/api/contractors";
+import { getMyContractorAssignment, getMyMilestones } from "@/api/contractors";
 import { Card, CardContent } from "@/components/ui/Card";
 import { PageLoader, EmptyState } from "@/components/ui/Feedback";
 import { AssignmentStatusBadge } from "@/components/ui/Badge";
@@ -10,6 +10,7 @@ export function ContractorAssignment() {
     queryKey: ["contractor-assignment"],
     queryFn: getMyContractorAssignment,
   });
+  const { data: milestones } = useQuery({ queryKey: ["contractor-milestones"], queryFn: getMyMilestones });
 
   if (isLoading) return <PageLoader />;
 
@@ -88,6 +89,7 @@ export function ContractorAssignment() {
           </CardContent>
         </Card>
       )}
+      {data?.has_assignment && <Card><CardContent><h3 className="font-semibold text-ink-900">Project milestones</h3><div className="mt-3 space-y-2">{(milestones || []).map(m => <div key={m.id} className="flex justify-between border-b border-ink-100 pb-2 text-sm"><span><b>{m.name}</b> · {m.description || "—"}</span><span>{m.status} · due {formatDate(m.due_date)}</span></div>)}</div></CardContent></Card>}
     </div>
   );
 }

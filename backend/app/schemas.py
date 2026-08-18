@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
-from app.models import UserRole, VendorStatus, ContractorStatus, AssignmentStatus, ProjectStatus
+from app.models import UserRole, VendorStatus, ContractorStatus, AssignmentStatus, ProjectStatus, MilestoneStatus, TimesheetStatus, TimesheetPriority
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +165,32 @@ class ProjectOut(BaseModel):
     assigned_contractors_count: int = 0
 
 
+class MilestoneCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=150)
+    start_date: date
+    due_date: date
+    description: Optional[str] = None
+    priority: TimesheetPriority = TimesheetPriority.MEDIUM
+    status: MilestoneStatus = MilestoneStatus.UPCOMING
+
+
+class MilestoneUpdate(BaseModel):
+    name: Optional[str] = None
+    start_date: Optional[date] = None
+    due_date: Optional[date] = None
+    description: Optional[str] = None
+    priority: Optional[TimesheetPriority] = None
+    status: Optional[MilestoneStatus] = None
+
+
+class MilestoneOut(MilestoneCreate):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    project_id: str
+    created_at: datetime
+    updated_at: datetime
+
+
 # ---------------------------------------------------------------------------
 # Assignment
 # ---------------------------------------------------------------------------
@@ -251,6 +277,83 @@ class ContractorAssignmentView(BaseModel):
     required_skills: Optional[str] = None
     location: Optional[str] = None
     work_mode: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Timesheets
+# ---------------------------------------------------------------------------
+class TimeEntryCreate(BaseModel):
+    work_date: date
+    clock_in: Optional[str] = None
+    clock_out: Optional[str] = None
+    manual_hours: Optional[float] = Field(default=None, gt=0, le=24)
+    break_minutes: int = Field(default=0, ge=0, le=720)
+    milestone_id: Optional[str] = None
+    work_location: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class TimeEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    work_date: date
+    milestone_id: Optional[str] = None
+    milestone_name: Optional[str] = None
+    clock_in: Optional[str] = None
+    clock_out: Optional[str] = None
+    break_minutes: int
+    regular_hours: float
+    overtime_hours: float
+    total_hours: float
+    work_location: Optional[str] = None
+    notes: Optional[str] = None
+    is_flagged: int
+    flag_reason: Optional[str] = None
+
+
+class TimesheetOut(BaseModel):
+    id: str
+    assignment_id: str
+    project_id: Optional[str] = None
+    project_name: str
+    contractor_name: str
+    week_start: date
+    week_end: date
+    status: TimesheetStatus
+    contractor_summary: Optional[str] = None
+    vendor_comment: Optional[str] = None
+    submitted_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    regular_hours: float = 0
+    overtime_hours: float = 0
+    total_hours: float = 0
+    compensation: float = 0
+    entries: List[TimeEntryOut] = []
+    audit_history: List[str] = []
+
+
+class TimesheetSubmit(BaseModel):
+    contractor_summary: Optional[str] = None
+
+
+class TimesheetReview(BaseModel):
+    action: str = Field(pattern="^(APPROVE|FLAG)$")
+    comment: Optional[str] = None
+    entry_id: Optional[str] = None
+
+
+class ProjectTimesheetAnalytics(BaseModel):
+    project_id: str
+    project_name: str
+    total_contractors: int
+    total_hours: float
+    regular_hours: float
+    overtime_hours: float
+    approved_hours: float
+    pending_hours: float
+    labor_cost: float
+    utilization: float
+    timesheet_compliance: float
 
 
 class ContractorAssignmentOut(BaseModel):

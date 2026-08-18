@@ -107,6 +107,11 @@ export interface Project {
   bill_rate: number; currency: string; status: ProjectStatus; created_at: string; updated_at: string;
   assigned_contractors_count: number;
 }
+export type MilestoneStatus = "UPCOMING" | "IN_PROGRESS" | "COMPLETED" | "DELAYED";
+export interface Milestone { id:string; project_id:string; name:string; start_date:string; due_date:string; description:string|null; priority:string; status:MilestoneStatus; created_at:string; updated_at:string; }
+export interface TimeEntry { id:string; work_date:string; milestone_id:string|null; milestone_name:string|null; clock_in:string|null; clock_out:string|null; break_minutes:number; regular_hours:number; overtime_hours:number; total_hours:number; work_location:string|null; notes:string|null; is_flagged:number; flag_reason:string|null; }
+export interface Timesheet { id:string; assignment_id:string; project_id:string|null; project_name:string; contractor_name:string; week_start:string; week_end:string; status:"DRAFT"|"SUBMITTED"|"FLAGGED"|"APPROVED"; contractor_summary:string|null; vendor_comment:string|null; submitted_at:string|null; approved_at:string|null; regular_hours:number; overtime_hours:number; total_hours:number; compensation:number; entries:TimeEntry[]; audit_history:string[]; }
+export interface ProjectTimesheetAnalytics { project_id:string; project_name:string; total_contractors:number; total_hours:number; regular_hours:number; overtime_hours:number; approved_hours:number; pending_hours:number; labor_cost:number; utilization:number; timesheet_compliance:number; }
 
 export interface ContractorAssignmentResponse {
   has_assignment: boolean;
