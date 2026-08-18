@@ -48,18 +48,18 @@ const vendorNav: NavItem[] = [
   { label: "Projects & Workforce", to: "/vendor/projects", icon: icons.assignments },
   { label: "Assignments", to: "/vendor/assignments", icon: icons.assignments },
   { label: "Timesheets", to: "/vendor/timesheets", icon: icons.timesheets },
+  { label: "Invoices", to: "/vendor/invoices", icon: icons.invoices },
+  { label: "Payroll", to: "/vendor/payroll", icon: icons.payroll },
   { label: "Milestones", to: "/vendor/milestones", icon: icons.milestones, comingSoon: true },
-  { label: "Invoices", to: "/vendor/invoices", icon: icons.invoices, comingSoon: true },
-  { label: "Payroll", to: "/vendor/payroll", icon: icons.payroll, comingSoon: true },
 ];
 
 const contractorNav: NavItem[] = [
   { label: "Dashboard", to: "/contractor/dashboard", icon: icons.dashboard },
   { label: "My Assignment", to: "/contractor/assignment", icon: icons.assignments },
   { label: "Timesheets", to: "/contractor/timesheets", icon: icons.timesheets },
+  { label: "Payroll & Pay Slips", to: "/contractor/payroll", icon: icons.payroll },
   { label: "Expenses", to: "/contractor/expenses", icon: icons.expenses, comingSoon: true },
   { label: "Milestones", to: "/contractor/milestones", icon: icons.milestones, comingSoon: true },
-  { label: "Payroll", to: "/contractor/payroll", icon: icons.payroll, comingSoon: true },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

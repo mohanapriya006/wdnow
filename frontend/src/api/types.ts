@@ -205,3 +205,140 @@ export interface ApiErrorBody {
   detail?: string | { field: string; message: string }[] | any;
   errors?: { field: string; message: string }[];
 }
+
+// ---------------------------------------------------------------------------
+// Invoices & Client Billing
+// ---------------------------------------------------------------------------
+
+export type InvoiceStatus = "DRAFT" | "ISSUED" | "PAID" | "CANCELLED";
+
+export interface InvoiceItem {
+  id: string;
+  timesheet_id?: string | null;
+  contractor_name: string;
+  project_name: string;
+  role: string;
+  hours: number;
+  rate: number;
+  amount: number;
+}
+
+export interface Invoice {
+  id: string;
+  vendor_id: string;
+  invoice_number: string;
+  client_name: string;
+  client_email?: string | null;
+  client_address?: string | null;
+  billing_period_start: string;
+  billing_period_end: string;
+  issue_date: string;
+  due_date: string;
+  subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
+  total_amount: number;
+  currency: string;
+  status: InvoiceStatus;
+  notes?: string | null;
+  created_at: string;
+  items: InvoiceItem[];
+}
+
+export interface VendorInvoiceSummary {
+  total_invoices: number;
+  total_billed: number;
+  total_paid: number;
+  total_outstanding: number;
+  issued_count: number;
+  paid_count: number;
+  currency: string;
+}
+
+export interface InvoiceGeneratePayload {
+  client_name: string;
+  client_email?: string;
+  client_address?: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  due_date: string;
+  tax_rate?: number;
+  notes?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Contractor Payroll & Pay Slips
+// ---------------------------------------------------------------------------
+
+export type PayrollStatus = "PENDING" | "PROCESSING" | "PAID";
+
+export interface PayrollItem {
+  id: string;
+  payroll_run_id: string;
+  contractor_id: string;
+  assignment_id?: string | null;
+  timesheet_id?: string | null;
+  contractor_name: string;
+  project_name: string;
+  role: string;
+  period_start: string;
+  period_end: string;
+  regular_hours: number;
+  overtime_hours: number;
+  total_hours: number;
+  pay_rate: number;
+  gross_pay: number;
+  tax_rate: number;
+  tax_withheld: number;
+  net_payout: number;
+  currency: string;
+  status: PayrollStatus;
+  bank_reference?: string | null;
+  created_at: string;
+}
+
+export interface PayrollRun {
+  id: string;
+  vendor_id: string;
+  run_reference: string;
+  period_start: string;
+  period_end: string;
+  total_contractors: number;
+  total_hours: number;
+  total_gross_pay: number;
+  total_tax_withheld: number;
+  total_net_payout: number;
+  currency: string;
+  status: PayrollStatus;
+  payment_method: string;
+  notes?: string | null;
+  disbursed_at: string;
+  created_at: string;
+  items: PayrollItem[];
+}
+
+export interface PayrollRunCreatePayload {
+  period_start: string;
+  period_end: string;
+  tax_rate?: number;
+  payment_method?: string;
+  notes?: string;
+}
+
+export interface ContractorPayrollSummary {
+  lifetime_earnings: number;
+  pending_payout: number;
+  last_disbursed_amount: number;
+  last_disbursed_date?: string | null;
+  total_paid_slips: number;
+  currency: string;
+}
+
+export interface VendorPayrollSummary {
+  total_runs: number;
+  total_disbursed: number;
+  total_tax_withheld: number;
+  pending_disbursement: number;
+  active_contractors_paid: number;
+  currency: string;
+}

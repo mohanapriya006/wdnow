@@ -271,3 +271,126 @@ class TimesheetAudit(Base):
     detail = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     timesheet = relationship("Timesheet", back_populates="audits")
+
+
+# ---------------------------------------------------------------------------
+# Invoices & Client Billing
+# ---------------------------------------------------------------------------
+
+class InvoiceStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
+    ISSUED = "ISSUED"
+    PAID = "PAID"
+    CANCELLED = "CANCELLED"
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id = Column(String, primary_key=True, default=lambda: gen_id("INV"))
+    vendor_id = Column(String, ForeignKey("vendors.id"), nullable=False, index=True)
+    invoice_number = Column(String, unique=True, nullable=False)
+    client_name = Column(String, nullable=False)
+    client_email = Column(String, nullable=True)
+    client_address = Column(String, nullable=True)
+    billing_period_start = Column(Date, nullable=False)
+    billing_period_end = Column(Date, nullable=False)
+    issue_date = Column(Date, nullable=False, default=date.today)
+    due_date = Column(Date, nullable=False)
+    subtotal = Column(Float, nullable=False, default=0.0)
+    tax_rate = Column(Float, nullable=False, default=18.0)  # 18% GST standard
+    tax_amount = Column(Float, nullable=False, default=0.0)
+    total_amount = Column(Float, nullable=False, default=0.0)
+    currency = Column(String, default="INR", nullable=False)
+    status = Column(SAEnum(InvoiceStatus), default=InvoiceStatus.ISSUED, nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vendor = relationship("Vendor")
+    items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
+
+
+class InvoiceItem(Base):
+    __tablename__ = "invoice_items"
+
+    id = Column(String, primary_key=True, default=lambda: gen_id("ITEM"))
+    invoice_id = Column(String, ForeignKey("invoices.id"), nullable=False, index=True)
+    timesheet_id = Column(String, ForeignKey("timesheets.id"), nullable=True)
+    contractor_name = Column(String, nullable=False)
+    project_name = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    hours = Column(Float, nullable=False, default=0.0)
+    rate = Column(Float, nullable=False, default=0.0)  # bill rate
+    amount = Column(Float, nullable=False, default=0.0)  # hours * rate
+
+    invoice = relationship("Invoice", back_populates="items")
+    timesheet = relationship("Timesheet")
+
+
+# ---------------------------------------------------------------------------
+# Contractor Payroll & Pay Slips
+# ---------------------------------------------------------------------------
+
+class PayrollStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    PAID = "PAID"
+
+
+class PayrollRun(Base):
+    __tablename__ = "payroll_runs"
+
+    id = Column(String, primary_key=True, default=lambda: gen_id("PAY"))
+    vendor_id = Column(String, ForeignKey("vendors.id"), nullable=False, index=True)
+    run_reference = Column(String, unique=True, nullable=False)
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+    total_contractors = Column(Integer, default=0, nullable=False)
+    total_hours = Column(Float, default=0.0, nullable=False)
+    total_gross_pay = Column(Float, default=0.0, nullable=False)
+    total_tax_withheld = Column(Float, default=0.0, nullable=False)
+    total_net_payout = Column(Float, default=0.0, nullable=False)
+    currency = Column(String, default="INR", nullable=False)
+    status = Column(SAEnum(PayrollStatus), default=PayrollStatus.PAID, nullable=False)
+    payment_method = Column(String, default="Direct Bank Transfer", nullable=False)
+    notes = Column(Text, nullable=True)
+    disbursed_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    vendor = relationship("Vendor")
+    items = relationship("PayrollItem", back_populates="payroll_run", cascade="all, delete-orphan")
+
+
+class PayrollItem(Base):
+    __tablename__ = "payroll_items"
+
+    id = Column(String, primary_key=True, default=lambda: gen_id("PS"))
+    payroll_run_id = Column(String, ForeignKey("payroll_runs.id"), nullable=False, index=True)
+    contractor_id = Column(String, ForeignKey("contractors.id"), nullable=False, index=True)
+    assignment_id = Column(String, ForeignKey("assignments.id"), nullable=True)
+    timesheet_id = Column(String, ForeignKey("timesheets.id"), nullable=True)
+    
+    contractor_name = Column(String, nullable=False)
+    project_name = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+    regular_hours = Column(Float, default=0.0, nullable=False)
+    overtime_hours = Column(Float, default=0.0, nullable=False)
+    total_hours = Column(Float, default=0.0, nullable=False)
+    pay_rate = Column(Float, default=0.0, nullable=False)
+    gross_pay = Column(Float, default=0.0, nullable=False)
+    tax_rate = Column(Float, default=10.0, nullable=False)  # 10% TDS withholding
+    tax_withheld = Column(Float, default=0.0, nullable=False)
+    net_payout = Column(Float, default=0.0, nullable=False)
+    currency = Column(String, default="INR", nullable=False)
+    status = Column(SAEnum(PayrollStatus), default=PayrollStatus.PAID, nullable=False)
+    bank_reference = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    payroll_run = relationship("PayrollRun", back_populates="items")
+    contractor = relationship("Contractor")
+    assignment = relationship("Assignment")
+    timesheet = relationship("Timesheet")
+

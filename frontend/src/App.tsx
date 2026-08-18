@@ -17,11 +17,14 @@ import { VendorAssignmentNew } from "@/pages/vendor/VendorAssignmentNew";
 import { VendorAssignmentDetail } from "@/pages/vendor/VendorAssignmentDetail";
 import { VendorProjects } from "@/pages/vendor/VendorProjects";
 import { VendorTimesheets } from "@/pages/vendor/VendorTimesheets";
+import { VendorInvoices } from "@/pages/vendor/VendorInvoices";
+import { VendorPayroll } from "@/pages/vendor/VendorPayroll";
 
 import { ContractorDashboard } from "@/pages/contractor/ContractorDashboard";
 import { ContractorProfile } from "@/pages/contractor/ContractorProfile";
 import { ContractorAssignment } from "@/pages/contractor/ContractorAssignment";
 import { ContractorTimesheets } from "@/pages/contractor/ContractorTimesheets";
+import { ContractorPayroll } from "@/pages/contractor/ContractorPayroll";
 import { PageLoader } from "@/components/ui/Feedback";
 
 const queryClient = new QueryClient({
@@ -150,26 +153,18 @@ function AppRoutes() {
         element={<ProtectedRoute allowedRole="VENDOR"><VendorTimesheets /></ProtectedRoute>}
       />
       <Route
+        path="/vendor/invoices"
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorInvoices /></ProtectedRoute>}
+      />
+      <Route
+        path="/vendor/payroll"
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorPayroll /></ProtectedRoute>}
+      />
+      <Route
         path="/vendor/milestones"
         element={
           <ProtectedRoute allowedRole="VENDOR">
             <ComingSoonPage title="Milestones" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/vendor/invoices"
-        element={
-          <ProtectedRoute allowedRole="VENDOR">
-            <ComingSoonPage title="Invoices" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/vendor/payroll"
-        element={
-          <ProtectedRoute allowedRole="VENDOR">
-            <ComingSoonPage title="Payroll" />
           </ProtectedRoute>
         }
       />
@@ -204,6 +199,10 @@ function AppRoutes() {
         element={<ProtectedRoute allowedRole="CONTRACTOR"><ContractorTimesheets /></ProtectedRoute>}
       />
       <Route
+        path="/contractor/payroll"
+        element={<ProtectedRoute allowedRole="CONTRACTOR"><ContractorPayroll /></ProtectedRoute>}
+      />
+      <Route
         path="/contractor/expenses"
         element={
           <ProtectedRoute allowedRole="CONTRACTOR">
@@ -216,14 +215,6 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRole="CONTRACTOR">
             <ComingSoonPage title="Milestones" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/contractor/payroll"
-        element={
-          <ProtectedRoute allowedRole="CONTRACTOR">
-            <ComingSoonPage title="Payroll" />
           </ProtectedRoute>
         }
       />

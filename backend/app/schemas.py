@@ -3,7 +3,18 @@ from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
-from app.models import UserRole, VendorStatus, ContractorStatus, AssignmentStatus, ProjectStatus, MilestoneStatus, TimesheetStatus, TimesheetPriority
+from app.models import (
+    UserRole,
+    VendorStatus,
+    ContractorStatus,
+    AssignmentStatus,
+    ProjectStatus,
+    MilestoneStatus,
+    TimesheetStatus,
+    TimesheetPriority,
+    InvoiceStatus,
+    PayrollStatus,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -434,4 +445,150 @@ class ProjectTimesheetAnalytics(BaseModel):
 class ContractorAssignmentOut(BaseModel):
     has_assignment: bool
     assignment: Optional[ContractorAssignmentView] = None
+
+
+# ---------------------------------------------------------------------------
+# Invoices & Billing
+# ---------------------------------------------------------------------------
+
+class InvoiceItemOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    timesheet_id: Optional[str] = None
+    contractor_name: str
+    project_name: str
+    role: str
+    hours: float
+    rate: float
+    amount: float
+
+
+class InvoiceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    vendor_id: str
+    invoice_number: str
+    client_name: str
+    client_email: Optional[str] = None
+    client_address: Optional[str] = None
+    billing_period_start: date
+    billing_period_end: date
+    issue_date: date
+    due_date: date
+    subtotal: float
+    tax_rate: float
+    tax_amount: float
+    total_amount: float
+    currency: str
+    status: InvoiceStatus
+    notes: Optional[str] = None
+    created_at: datetime
+    items: List[InvoiceItemOut] = []
+
+
+class InvoiceGenerateFromTimesheets(BaseModel):
+    client_name: str
+    client_email: Optional[str] = None
+    client_address: Optional[str] = None
+    billing_period_start: date
+    billing_period_end: date
+    due_date: date
+    tax_rate: float = 18.0
+    notes: Optional[str] = None
+
+
+class InvoiceStatusUpdate(BaseModel):
+    status: InvoiceStatus
+
+
+class VendorInvoiceSummaryOut(BaseModel):
+    total_invoices: int
+    total_billed: float
+    total_paid: float
+    total_outstanding: float
+    issued_count: int
+    paid_count: int
+    currency: str = "INR"
+
+
+# ---------------------------------------------------------------------------
+# Contractor Payroll & Pay Slips
+# ---------------------------------------------------------------------------
+
+class PayrollItemOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    payroll_run_id: str
+    contractor_id: str
+    assignment_id: Optional[str] = None
+    timesheet_id: Optional[str] = None
+    contractor_name: str
+    project_name: str
+    role: str
+    period_start: date
+    period_end: date
+    regular_hours: float
+    overtime_hours: float
+    total_hours: float
+    pay_rate: float
+    gross_pay: float
+    tax_rate: float
+    tax_withheld: float
+    net_payout: float
+    currency: str
+    status: PayrollStatus
+    bank_reference: Optional[str] = None
+    created_at: datetime
+
+
+class PayrollRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    vendor_id: str
+    run_reference: str
+    period_start: date
+    period_end: date
+    total_contractors: int
+    total_hours: float
+    total_gross_pay: float
+    total_tax_withheld: float
+    total_net_payout: float
+    currency: str
+    status: PayrollStatus
+    payment_method: str
+    notes: Optional[str] = None
+    disbursed_at: datetime
+    created_at: datetime
+    items: List[PayrollItemOut] = []
+
+
+class PayrollRunCreate(BaseModel):
+    period_start: date
+    period_end: date
+    tax_rate: float = 10.0  # 10% TDS
+    payment_method: str = "Direct Bank Transfer"
+    notes: Optional[str] = None
+
+
+class ContractorPayrollSummaryOut(BaseModel):
+    lifetime_earnings: float
+    pending_payout: float
+    last_disbursed_amount: float
+    last_disbursed_date: Optional[datetime] = None
+    total_paid_slips: int
+    currency: str = "INR"
+
+
+class VendorPayrollSummaryOut(BaseModel):
+    total_runs: int
+    total_disbursed: float
+    total_tax_withheld: float
+    pending_disbursement: float
+    active_contractors_paid: int
+    currency: str = "INR"
+
 
