@@ -122,3 +122,33 @@ export interface ApiErrorBody {
   detail?: string | { field: string; message: string }[] | any;
   errors?: { field: string; message: string }[];
 }
+
+export interface ContractorRecommendation {
+  contractor_id: string;
+  name: string;
+  match_score: number;
+  skill_score: number;
+  experience_score: number;
+  location_score: number;
+  availability_score: number;
+  matched_skills: string[];
+  missing_skills: string[];
+  experience_years: number;
+  experience?: string | null;
+  location?: string | null;
+  status: "ON_BENCH" | "ALREADY_ASSIGNED" | string;
+  current_project?: string | null;
+  current_assignment_id?: string | null;
+  recommendation: "STRONG_MATCH" | "GOOD_MATCH" | "POTENTIAL_MATCH" | "WEAK_MATCH" | string;
+  explanation?: string | null;
+}
+
+export interface ProjectRecommendationsResponse {
+  project_id: string;
+  project_name: string;
+  role: string;
+  required_skills: string[];
+  location?: string | null;
+  total_candidates: number;
+  recommendations: ContractorRecommendation[];
+}

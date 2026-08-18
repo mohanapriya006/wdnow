@@ -97,11 +97,11 @@ def calculate_availability_score(
 
     status = status.upper()
 
-    if status == "BENCH":
+    if status in ("BENCH", "ON_BENCH"):
         return 100.0
 
-    if status == "ACTIVE":
-        return 80.0
+    if status in ("ACTIVE", "ALREADY_ASSIGNED"):
+        return 50.0
 
     if status == "INACTIVE":
         return 0.0
@@ -117,10 +117,10 @@ def calculate_final_score(
 ) -> float:
 
     score = (
-        skill_score * 0.50
-        + experience_score * 0.25
+        skill_score * 0.45
+        + experience_score * 0.20
         + location_score * 0.15
-        + availability_score * 0.10
+        + availability_score * 0.20
     )
 
     return round(score, 2)

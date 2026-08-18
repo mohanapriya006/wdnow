@@ -1,17 +1,15 @@
 SYSTEM_PROMPT = """
-You are an enterprise workforce staffing assistant.
+You are an enterprise workforce staffing assistant for a Vendor Management System.
 
-Your task is to explain why a contractor was recommended
-for a project.
+Your task is to provide a clear, concise (2-3 sentences) explanation for why a contractor was recommended for a project.
 
 STRICT RULES:
-1. Use only the information provided.
+1. Use only the provided information.
 2. Never invent skills, experience, location, or availability.
 3. Never modify the calculated match score.
-4. Never claim a missing skill is present.
-5. Be concise and professional.
-6. Clearly mention strengths and gaps.
-7. Your response must be suitable for a vendor hiring manager.
+4. Highlight key matched skills and mention any missing skills.
+5. Clearly note if the contractor is on the bench (ready to deploy) or currently assigned to another project.
+6. Keep the tone professional, objective, and executive-ready.
 """
 
 
@@ -32,7 +30,10 @@ def build_recommendation_prompt(
     matched_skills: list[str],
     missing_skills: list[str],
     recommendation: str,
+    status: str = "ON_BENCH",
+    current_project: str | None = None,
 ) -> str:
+    status_text = "On Bench (Available immediately)" if status == "ON_BENCH" else f"Already Assigned (Current project: {current_project or 'Active Assignment'})"
 
     return f"""
 Project:
@@ -45,7 +46,7 @@ Minimum experience:
 {minimum_experience_years} years
 
 Required location:
-{required_location}
+{required_location or 'Any / Remote'}
 
 Contractor:
 {contractor_name}
@@ -57,14 +58,17 @@ Contractor experience:
 {contractor_experience} years
 
 Contractor location:
-{contractor_location}
+{contractor_location or 'Not specified'}
+
+Availability / Status:
+{status_text}
 
 Calculated scores:
-Overall match: {match_score}
-Skill score: {skill_score}
-Experience score: {experience_score}
-Location score: {location_score}
-Availability score: {availability_score}
+Overall match: {match_score}%
+Skill score (45% weight): {skill_score}%
+Experience score (20% weight): {experience_score}%
+Location score (15% weight): {location_score}%
+Availability score (20% weight): {availability_score}%
 
 Matched skills:
 {matched_skills}
@@ -72,15 +76,8 @@ Matched skills:
 Missing skills:
 {missing_skills}
 
-Recommendation:
+Recommendation level:
 {recommendation}
 
-Write a concise explanation in 2-4 sentences.
-Explain:
-- why the contractor matches
-- their strongest areas
-- any missing skills or concerns
-- why the calculated recommendation makes sense
-
-Do not change any score.
+Write a concise explanation in 2-3 sentences explaining why {contractor_name} is rated as a {recommendation} ({match_score}%), citing matched skills, experience/location alignment, and their availability ({status_text}).
 """

@@ -81,17 +81,31 @@ def parse_skills(value) -> list[str]:
     ]
 
 
-def contractor_to_candidate(contractor) -> ContractorCandidate:
+def contractor_to_candidate(
+    contractor,
+    status: str | None = None,
+    current_project: str | None = None,
+    current_assignment_id: str | None = None,
+) -> ContractorCandidate:
     """
     Convert your SQLAlchemy Contractor model into
     the AI-independent schema.
     """
+
+    status_val = status or (
+        "ON_BENCH" if getattr(contractor, "status", None) == "BENCH" else getattr(contractor, "status", "ON_BENCH")
+    )
+    if hasattr(status_val, "value"):
+        status_val = status_val.value
 
     return ContractorCandidate(
         id=contractor.id,
         name=contractor.name,
         skills=parse_skills(contractor.skills),
         experience_years=parse_experience(contractor.experience),
+        experience=contractor.experience,
         location=contractor.location,
-        status=contractor.status,
+        status=str(status_val),
+        current_project=current_project,
+        current_assignment_id=current_assignment_id,
     )
