@@ -8,14 +8,9 @@ export async function listMyAssignments(): Promise<Assignment[]> {
 
 export interface AssignmentCreatePayload {
   contractor_id: string;
-  project_name: string;
-  role: string;
-  start_date: string;
+  project_id: string;
+  start_date?: string;
   end_date?: string | null;
-  working_hours: number;
-  pay_rate: number;
-  bill_rate: number;
-  currency?: string;
   notes?: string;
 }
 

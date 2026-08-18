@@ -15,10 +15,13 @@ import { VendorContractorDetail } from "@/pages/vendor/VendorContractorDetail";
 import { VendorAssignments } from "@/pages/vendor/VendorAssignments";
 import { VendorAssignmentNew } from "@/pages/vendor/VendorAssignmentNew";
 import { VendorAssignmentDetail } from "@/pages/vendor/VendorAssignmentDetail";
+import { VendorProjects } from "@/pages/vendor/VendorProjects";
+import { VendorTimesheets } from "@/pages/vendor/VendorTimesheets";
 
 import { ContractorDashboard } from "@/pages/contractor/ContractorDashboard";
 import { ContractorProfile } from "@/pages/contractor/ContractorProfile";
 import { ContractorAssignment } from "@/pages/contractor/ContractorAssignment";
+import { ContractorTimesheets } from "@/pages/contractor/ContractorTimesheets";
 import { PageLoader } from "@/components/ui/Feedback";
 
 const queryClient = new QueryClient({
@@ -115,6 +118,10 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/vendor/projects"
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorProjects /></ProtectedRoute>}
+      />
+      <Route
         path="/vendor/assignments"
         element={
           <ProtectedRoute allowedRole="VENDOR">
@@ -140,11 +147,7 @@ function AppRoutes() {
       />
       <Route
         path="/vendor/timesheets"
-        element={
-          <ProtectedRoute allowedRole="VENDOR">
-            <ComingSoonPage title="Timesheets" />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorTimesheets /></ProtectedRoute>}
       />
       <Route
         path="/vendor/milestones"
@@ -198,11 +201,7 @@ function AppRoutes() {
       />
       <Route
         path="/contractor/timesheets"
-        element={
-          <ProtectedRoute allowedRole="CONTRACTOR">
-            <ComingSoonPage title="Timesheets" />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRole="CONTRACTOR"><ContractorTimesheets /></ProtectedRoute>}
       />
       <Route
         path="/contractor/expenses"

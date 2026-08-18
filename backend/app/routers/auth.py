@@ -10,6 +10,8 @@ from app.schemas import (
     TokenResponse,
     VendorRegisterRequest,
     ContractorRegisterRequest,
+    ContractorRegistration,
+    ContractorOut,
     VendorPublicOut,
     UserMeOut,
 )

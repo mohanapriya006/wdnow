@@ -45,8 +45,9 @@ const icons = {
 const vendorNav: NavItem[] = [
   { label: "Dashboard", to: "/vendor/dashboard", icon: icons.dashboard },
   { label: "Contractors", to: "/vendor/contractors", icon: icons.contractors },
+  { label: "Projects & Workforce", to: "/vendor/projects", icon: icons.assignments },
   { label: "Assignments", to: "/vendor/assignments", icon: icons.assignments },
-  { label: "Timesheets", to: "/vendor/timesheets", icon: icons.timesheets, comingSoon: true },
+  { label: "Timesheets", to: "/vendor/timesheets", icon: icons.timesheets },
   { label: "Milestones", to: "/vendor/milestones", icon: icons.milestones, comingSoon: true },
   { label: "Invoices", to: "/vendor/invoices", icon: icons.invoices, comingSoon: true },
   { label: "Payroll", to: "/vendor/payroll", icon: icons.payroll, comingSoon: true },
@@ -55,7 +56,7 @@ const vendorNav: NavItem[] = [
 const contractorNav: NavItem[] = [
   { label: "Dashboard", to: "/contractor/dashboard", icon: icons.dashboard },
   { label: "My Assignment", to: "/contractor/assignment", icon: icons.assignments },
-  { label: "Timesheets", to: "/contractor/timesheets", icon: icons.timesheets, comingSoon: true },
+  { label: "Timesheets", to: "/contractor/timesheets", icon: icons.timesheets },
   { label: "Expenses", to: "/contractor/expenses", icon: icons.expenses, comingSoon: true },
   { label: "Milestones", to: "/contractor/milestones", icon: icons.milestones, comingSoon: true },
   { label: "Payroll", to: "/contractor/payroll", icon: icons.payroll, comingSoon: true },

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
@@ -175,6 +175,7 @@ export function LoginPage() {
               </button>
             </div>
           </div>
+          <p className="mt-5 text-center text-sm text-ink-500">New contractor? <Link to="/register" className="font-medium text-brand-700 hover:text-brand-800">Create your contractor account</Link></p>
         </div>
       </div>
     </div>
