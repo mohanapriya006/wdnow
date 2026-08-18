@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Twilio Configuration
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_FROM_PHONE: str = ""
+    TWILIO_ENABLED: bool = True
+    TWILIO_USE_TRIAL_TEMPLATE: bool = False
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

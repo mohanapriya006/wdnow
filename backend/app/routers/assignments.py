@@ -13,6 +13,7 @@ from app.deps import (
 )
 from app.models import Assignment, Contractor, UserRole, ContractorStatus, AssignmentStatus
 from app.schemas import AssignmentCreate, AssignmentUpdate, AssignmentOut, AssignmentDetailOut
+from app.services.twilio_service import send_contractor_assignment_sms
 
 router = APIRouter(prefix="/api/assignments", tags=["assignments"])
 
@@ -99,6 +100,23 @@ def create_assignment(
 
     db.commit()
     db.refresh(assignment)
+
+    # Trigger Twilio SMS notification to contractor asynchronously/safely
+    try:
+        vendor_name = assignment.vendor.name if assignment.vendor else "Your Vendor"
+        send_contractor_assignment_sms(
+            contractor_name=contractor.name,
+            contractor_phone=contractor.phone,
+            project_name=assignment.project_name,
+            role=assignment.role,
+            vendor_name=vendor_name,
+            pay_rate=assignment.pay_rate,
+            currency=assignment.currency,
+            start_date=str(assignment.start_date),
+        )
+    except Exception:
+        pass
+
     return _to_detail(assignment)
 
 
