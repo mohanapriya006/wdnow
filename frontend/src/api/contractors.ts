@@ -28,6 +28,11 @@ export async function addContractor(payload: ContractorCreatePayload): Promise<C
   return data;
 }
 
+export async function registerContractor(payload: Required<Pick<ContractorCreatePayload, "name" | "email" | "password">> & ContractorCreatePayload): Promise<Contractor> {
+  const { data } = await apiClient.post<Contractor>("/api/auth/register/contractor", payload);
+  return data;
+}
+
 export async function getContractor(id: string): Promise<Contractor> {
   const { data } = await apiClient.get<Contractor>(`/api/contractors/${id}`);
   return data;

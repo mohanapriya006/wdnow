@@ -45,6 +45,7 @@ const icons = {
 const vendorNav: NavItem[] = [
   { label: "Dashboard", to: "/vendor/dashboard", icon: icons.dashboard },
   { label: "Contractors", to: "/vendor/contractors", icon: icons.contractors },
+  { label: "Projects & Workforce", to: "/vendor/projects", icon: icons.assignments },
   { label: "Assignments", to: "/vendor/assignments", icon: icons.assignments },
   { label: "Timesheets", to: "/vendor/timesheets", icon: icons.timesheets, comingSoon: true },
   { label: "Milestones", to: "/vendor/milestones", icon: icons.milestones, comingSoon: true },

@@ -47,6 +47,14 @@ class AssignmentStatus(str, enum.Enum):
     TERMINATED = "TERMINATED"
 
 
+class ProjectStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
+    OPEN = "OPEN"
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -78,6 +86,7 @@ class Vendor(Base):
 
     users = relationship("User", back_populates="vendor", foreign_keys="User.vendor_id")
     contractors = relationship("Contractor", back_populates="vendor", cascade="all, delete-orphan")
+    projects = relationship("Project", back_populates="vendor", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="vendor", cascade="all, delete-orphan")
 
 
@@ -101,6 +110,37 @@ class Contractor(Base):
     assignments = relationship("Assignment", back_populates="contractor", cascade="all, delete-orphan")
 
 
+class Project(Base):
+    """A vendor-owned project/work order template.
+
+    Assignment records snapshot the commercial and work terms at the time a
+    person is placed, so later project edits do not rewrite payroll, invoice,
+    analytics, or timesheet history.
+    """
+    __tablename__ = "projects"
+
+    id = Column(String, primary_key=True, default=lambda: gen_id("P"))
+    vendor_id = Column(String, ForeignKey("vendors.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    role = Column(String, nullable=False)
+    required_skills = Column(String, nullable=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)
+    location = Column(String, nullable=True)
+    work_mode = Column(String, default="REMOTE", nullable=False)
+    working_hours = Column(Integer, default=40, nullable=False)
+    pay_rate = Column(Float, nullable=False)
+    bill_rate = Column(Float, nullable=False)
+    currency = Column(String, default="INR", nullable=False)
+    status = Column(SAEnum(ProjectStatus), default=ProjectStatus.OPEN, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vendor = relationship("Vendor", back_populates="projects")
+    assignments = relationship("Assignment", back_populates="project")
+
+
 class Assignment(Base):
     """
     The central entity of the platform. Every future module (timesheets,
@@ -114,6 +154,8 @@ class Assignment(Base):
     id = Column(String, primary_key=True, default=lambda: gen_id("A"))
     vendor_id = Column(String, ForeignKey("vendors.id"), nullable=False)
     contractor_id = Column(String, ForeignKey("contractors.id"), nullable=False)
+    # Nullable only for backwards-compatible migration of legacy assignments.
+    project_id = Column(String, ForeignKey("projects.id"), nullable=True, index=True)
 
     project_name = Column(String, nullable=False)
     role = Column(String, nullable=False)
@@ -127,9 +169,14 @@ class Assignment(Base):
 
     status = Column(SAEnum(AssignmentStatus), default=AssignmentStatus.ACTIVE, nullable=False)
     notes = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    required_skills = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    work_mode = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     vendor = relationship("Vendor", back_populates="assignments")
     contractor = relationship("Contractor", back_populates="assignments")
+    project = relationship("Project", back_populates="assignments")

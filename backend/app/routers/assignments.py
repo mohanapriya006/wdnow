@@ -11,7 +11,7 @@ from app.deps import (
     assert_vendor_owns_assignment,
     assert_contractor_owns_assignment,
 )
-from app.models import Assignment, Contractor, UserRole, ContractorStatus, AssignmentStatus
+from app.models import Assignment, Contractor, Project, UserRole, ContractorStatus, AssignmentStatus
 from app.schemas import AssignmentCreate, AssignmentUpdate, AssignmentOut, AssignmentDetailOut
 
 router = APIRouter(prefix="/api/assignments", tags=["assignments"])
@@ -22,6 +22,7 @@ def _to_detail(assignment: Assignment) -> AssignmentDetailOut:
         id=assignment.id,
         vendor_id=assignment.vendor_id,
         contractor_id=assignment.contractor_id,
+        project_id=assignment.project_id,
         project_name=assignment.project_name,
         role=assignment.role,
         start_date=assignment.start_date,
@@ -32,6 +33,10 @@ def _to_detail(assignment: Assignment) -> AssignmentDetailOut:
         currency=assignment.currency,
         status=assignment.status,
         notes=assignment.notes,
+        description=assignment.description,
+        required_skills=assignment.required_skills,
+        location=assignment.location,
+        work_mode=assignment.work_mode,
         created_at=assignment.created_at,
         updated_at=assignment.updated_at,
         contractor_name=assignment.contractor.name if assignment.contractor else None,
@@ -63,33 +68,44 @@ def create_assignment(
     if not contractor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contractor not found.")
 
+    project = db.query(Project).filter(Project.id == payload.project_id).first()
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
+    if project.vendor_id != current_user.vendor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You may only assign to your own projects.")
     # Ownership check: vendor may only create assignments for their own contractors.
     assert_vendor_owns_assignment(current_user.vendor_id, contractor.vendor_id)
 
-    if payload.end_date and payload.end_date < payload.start_date:
+    start_date = payload.start_date or project.start_date
+    end_date = payload.end_date if payload.end_date is not None else project.end_date
+    if end_date and end_date < start_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="End date cannot be before start date.",
         )
-    if payload.bill_rate < payload.pay_rate:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Bill rate cannot be lower than pay rate.",
-        )
+    existing_active = db.query(Assignment).filter(Assignment.contractor_id == contractor.id,
+                                                    Assignment.status == AssignmentStatus.ACTIVE).first()
+    if existing_active:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Contractor already has an active assignment.")
 
     # vendor_id is ALWAYS derived from the authenticated JWT, never trusted from the client.
     assignment = Assignment(
         vendor_id=current_user.vendor_id,
         contractor_id=contractor.id,
-        project_name=payload.project_name,
-        role=payload.role,
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-        working_hours=payload.working_hours,
-        pay_rate=payload.pay_rate,
-        bill_rate=payload.bill_rate,
-        currency=payload.currency,
+        project_id=project.id,
+        project_name=project.name,
+        role=project.role,
+        start_date=start_date,
+        end_date=end_date,
+        working_hours=project.working_hours,
+        pay_rate=project.pay_rate,
+        bill_rate=project.bill_rate,
+        currency=project.currency,
         notes=payload.notes,
+        description=project.description,
+        required_skills=project.required_skills,
+        location=project.location,
+        work_mode=project.work_mode,
         status=AssignmentStatus.ACTIVE,
     )
     db.add(assignment)

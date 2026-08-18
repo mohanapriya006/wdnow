@@ -17,6 +17,7 @@ from app.models import (
     Vendor,
     Contractor,
     Assignment,
+    Project,
     User,
     UserRole,
     VendorStatus,
@@ -99,10 +100,21 @@ def run_seed():
         )
         db.add_all([priya_user, arun_user])
 
+        project = Project(
+            id="P001", vendor_id=vendor.id, name="Payment Platform",
+            description="Build and operate the next-generation payment processing platform.",
+            role="Senior C++ Developer", required_skills="C++, Kafka, Redis",
+            start_date=date(2026, 9, 1), end_date=date(2027, 2, 28),
+            location="Bengaluru, India", work_mode="HYBRID", working_hours=40,
+            pay_rate=1500.0, bill_rate=2000.0, currency="INR",
+        )
+        db.add(project)
+
         assignment = Assignment(
             id="A001",
             vendor_id=vendor.id,
             contractor_id=priya.id,
+            project_id=project.id,
             project_name="Payment Platform",
             role="Senior C++ Developer",
             start_date=date(2026, 9, 1),
@@ -113,6 +125,10 @@ def run_seed():
             currency="INR",
             status=AssignmentStatus.ACTIVE,
             notes="Initial seeded assignment for hackathon demo.",
+            description=project.description,
+            required_skills=project.required_skills,
+            location=project.location,
+            work_mode=project.work_mode,
         )
         db.add(assignment)
 

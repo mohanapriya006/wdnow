@@ -1,0 +1,13 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { registerContractor } from "@/api/contractors";
+import { Button } from "@/components/ui/Button";
+import { Input, Label } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Feedback";
+import { extractErrorMessage } from "@/api/client";
+
+export function ContractorRegisterPage() {
+  const navigate = useNavigate(); const [form, setForm] = useState({ name: "", email: "", password: "", skills: "", experience: "", location: "", phone: "" }); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(false);
+  async function submit(e: React.FormEvent) { e.preventDefault(); setError(null); setLoading(true); try { await registerContractor(form); navigate("/login", { state: { registered: true } }); } catch (e) { setError(extractErrorMessage(e)); } finally { setLoading(false); } }
+  return <div className="flex min-h-screen items-center justify-center bg-ink-50 p-6"><div className="w-full max-w-lg rounded-xl border border-ink-200 bg-white p-7 shadow-sm"><h1 className="text-2xl font-bold text-ink-900">Join the workforce</h1><p className="mt-1 text-sm text-ink-500">Register as a contractor for ABC Staffing Solutions. Your initial status will be On Bench.</p><form onSubmit={submit} className="mt-6 space-y-4">{error && <Alert variant="error">{error}</Alert>}<div className="grid gap-4 sm:grid-cols-2"><div><Label>Full name *</Label><Input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div><div><Label>Phone</Label><Input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></div></div><div><Label>Email *</Label><Input type="email" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></div><div><Label>Password *</Label><Input type="password" minLength={8} required value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div><div className="grid gap-4 sm:grid-cols-2"><div><Label>Skills</Label><Input placeholder="React, Python" value={form.skills} onChange={e=>setForm({...form,skills:e.target.value})}/></div><div><Label>Experience</Label><Input placeholder="3 years" value={form.experience} onChange={e=>setForm({...form,experience:e.target.value})}/></div></div><div><Label>Location</Label><Input value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></div><Button type="submit" className="w-full" isLoading={loading}>Create contractor account</Button></form><p className="mt-5 text-center text-sm text-ink-500">Already registered? <Link to="/login" className="font-medium text-brand-700">Sign in</Link></p></div></div>;
+}

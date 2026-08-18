@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "@/pages/LoginPage";
+import { ContractorRegisterPage } from "@/pages/ContractorRegisterPage";
 import { NotFound } from "@/pages/NotFound";
 import { ComingSoonPage } from "@/pages/ComingSoonPage";
 
@@ -13,6 +14,7 @@ import { VendorContractorDetail } from "@/pages/vendor/VendorContractorDetail";
 import { VendorAssignments } from "@/pages/vendor/VendorAssignments";
 import { VendorAssignmentNew } from "@/pages/vendor/VendorAssignmentNew";
 import { VendorAssignmentDetail } from "@/pages/vendor/VendorAssignmentDetail";
+import { VendorProjects } from "@/pages/vendor/VendorProjects";
 
 import { ContractorDashboard } from "@/pages/contractor/ContractorDashboard";
 import { ContractorProfile } from "@/pages/contractor/ContractorProfile";
@@ -54,6 +56,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/register" element={<ContractorRegisterPage />} />
 
       {/* Vendor routes */}
       <Route
@@ -87,6 +90,10 @@ function AppRoutes() {
             <VendorContractorDetail />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/vendor/projects"
+        element={<ProtectedRoute allowedRole="VENDOR"><VendorProjects /></ProtectedRoute>}
       />
       <Route
         path="/vendor/assignments"

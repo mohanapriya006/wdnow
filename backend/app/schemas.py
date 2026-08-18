@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
-from app.models import UserRole, VendorStatus, ContractorStatus, AssignmentStatus
+from app.models import UserRole, VendorStatus, ContractorStatus, AssignmentStatus, ProjectStatus
 
 
 # ---------------------------------------------------------------------------
@@ -13,6 +13,17 @@ from app.models import UserRole, VendorStatus, ContractorStatus, AssignmentStatu
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class ContractorRegistration(BaseModel):
+    """Public onboarding for the single existing vendor program."""
+    name: str = Field(min_length=2, max_length=120)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    phone: Optional[str] = None
+    skills: Optional[str] = None
+    experience: Optional[str] = None
+    location: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -98,19 +109,72 @@ class ContractorWithAssignmentStatus(ContractorOut):
 
 
 # ---------------------------------------------------------------------------
+# Projects
+# ---------------------------------------------------------------------------
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=150)
+    description: Optional[str] = None
+    role: str = Field(min_length=2, max_length=120)
+    required_skills: Optional[str] = None
+    start_date: date
+    end_date: Optional[date] = None
+    location: Optional[str] = None
+    work_mode: str = Field(default="REMOTE", max_length=30)
+    working_hours: int = Field(default=40, ge=1, le=168)
+    pay_rate: float = Field(gt=0)
+    bill_rate: float = Field(gt=0)
+    currency: str = "INR"
+    status: ProjectStatus = ProjectStatus.OPEN
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=2, max_length=150)
+    description: Optional[str] = None
+    role: Optional[str] = Field(default=None, min_length=2, max_length=120)
+    required_skills: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    location: Optional[str] = None
+    work_mode: Optional[str] = None
+    working_hours: Optional[int] = Field(default=None, ge=1, le=168)
+    pay_rate: Optional[float] = Field(default=None, gt=0)
+    bill_rate: Optional[float] = Field(default=None, gt=0)
+    currency: Optional[str] = None
+    status: Optional[ProjectStatus] = None
+
+
+class ProjectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    vendor_id: str
+    name: str
+    description: Optional[str] = None
+    role: str
+    required_skills: Optional[str] = None
+    start_date: date
+    end_date: Optional[date] = None
+    location: Optional[str] = None
+    work_mode: str
+    working_hours: int
+    pay_rate: float
+    bill_rate: float
+    currency: str
+    status: ProjectStatus
+    created_at: datetime
+    updated_at: datetime
+    assigned_contractors_count: int = 0
+
+
+# ---------------------------------------------------------------------------
 # Assignment
 # ---------------------------------------------------------------------------
 
 class AssignmentCreate(BaseModel):
     contractor_id: str
-    project_name: str = Field(min_length=2, max_length=150)
-    role: str = Field(min_length=2, max_length=120)
-    start_date: date
+    project_id: str
+    # Assignment dates are distinct from the project's planned dates.
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
-    working_hours: int = Field(default=40, ge=1, le=168)
-    pay_rate: float = Field(gt=0)
-    bill_rate: float = Field(gt=0)
-    currency: str = "INR"
     notes: Optional[str] = None
 
 
@@ -132,6 +196,7 @@ class AssignmentOut(BaseModel):
     id: str
     vendor_id: str
     contractor_id: str
+    project_id: Optional[str] = None
     project_name: str
     role: str
     start_date: date
@@ -142,6 +207,10 @@ class AssignmentOut(BaseModel):
     currency: str
     status: AssignmentStatus
     notes: Optional[str] = None
+    description: Optional[str] = None
+    required_skills: Optional[str] = None
+    location: Optional[str] = None
+    work_mode: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -178,6 +247,10 @@ class ContractorAssignmentView(BaseModel):
     currency: str
     status: AssignmentStatus
     created_at: datetime
+    description: Optional[str] = None
+    required_skills: Optional[str] = None
+    location: Optional[str] = None
+    work_mode: Optional[str] = None
 
 
 class ContractorAssignmentOut(BaseModel):

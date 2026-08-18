@@ -185,5 +185,9 @@ def get_my_assignment(
         currency=assignment.currency,
         status=assignment.status,
         created_at=assignment.created_at,
+        description=assignment.description,
+        required_skills=assignment.required_skills,
+        location=assignment.location,
+        work_mode=assignment.work_mode,
     )
     return ContractorAssignmentOut(has_assignment=True, assignment=view)

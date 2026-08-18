@@ -58,12 +58,24 @@ export function ContractorAssignment() {
                 <p className="mt-1 text-sm font-medium text-ink-800">{data.assignment!.working_hours} hrs / week</p>
               </div>
               <div>
+                <p className="text-xs font-medium uppercase text-ink-400">Work mode & location</p>
+                <p className="mt-1 text-sm font-medium text-ink-800">{data.assignment!.work_mode || "—"}{data.assignment!.location ? ` · ${data.assignment!.location}` : ""}</p>
+              </div>
+              <div>
                 <p className="text-xs font-medium uppercase text-ink-400">Start date</p>
                 <p className="mt-1 text-sm font-medium text-ink-800">{formatDate(data.assignment!.start_date)}</p>
               </div>
               <div>
                 <p className="text-xs font-medium uppercase text-ink-400">End date</p>
                 <p className="mt-1 text-sm font-medium text-ink-800">{formatDate(data.assignment!.end_date)}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs font-medium uppercase text-ink-400">Required skills</p>
+                <p className="mt-1 text-sm font-medium text-ink-800">{data.assignment!.required_skills || "—"}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs font-medium uppercase text-ink-400">Project description</p>
+                <p className="mt-1 text-sm text-ink-700">{data.assignment!.description || "—"}</p>
               </div>
               <div className="sm:col-span-2">
                 <p className="text-xs font-medium uppercase text-ink-400">Pay rate</p>

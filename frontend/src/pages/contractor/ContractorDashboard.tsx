@@ -35,7 +35,7 @@ export function ContractorDashboard() {
             assignmentData?.has_assignment ? (
               <AssignmentStatusBadge status={assignmentData.assignment!.status} />
             ) : (
-              <span className="text-base font-semibold text-ink-400">None</span>
+              <span className="text-base font-semibold text-amber-600">On Bench</span>
             )
           }
         />
@@ -67,7 +67,7 @@ export function ContractorDashboard() {
             <PageLoader />
           ) : !assignmentData?.has_assignment ? (
             <EmptyState
-              title="No active assignment"
+              title="On Bench"
               description="Your vendor hasn't placed you on a project yet. You'll see it here as soon as it's created."
             />
           ) : (

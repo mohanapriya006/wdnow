@@ -2,6 +2,7 @@ export type UserRole = "VENDOR" | "CONTRACTOR";
 export type VendorStatus = "ACTIVE" | "INACTIVE" | "PENDING";
 export type ContractorStatus = "ACTIVE" | "INACTIVE" | "BENCH";
 export type AssignmentStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "TERMINATED";
+export type ProjectStatus = "DRAFT" | "OPEN" | "ACTIVE" | "COMPLETED" | "CANCELLED";
 
 export interface LoginResponse {
   access_token: string;
@@ -60,6 +61,7 @@ export interface Assignment {
   id: string;
   vendor_id: string;
   contractor_id: string;
+  project_id: string | null;
   project_name: string;
   role: string;
   start_date: string;
@@ -70,6 +72,10 @@ export interface Assignment {
   currency: string;
   status: AssignmentStatus;
   notes: string | null;
+  description: string | null;
+  required_skills: string | null;
+  location: string | null;
+  work_mode: string | null;
   created_at: string;
   updated_at: string;
   contractor_name?: string | null;
@@ -88,6 +94,18 @@ export interface ContractorAssignmentView {
   currency: string;
   status: AssignmentStatus;
   created_at: string;
+  description: string | null;
+  required_skills: string | null;
+  location: string | null;
+  work_mode: string | null;
+}
+
+export interface Project {
+  id: string; vendor_id: string; name: string; description: string | null; role: string;
+  required_skills: string | null; start_date: string; end_date: string | null;
+  location: string | null; work_mode: string; working_hours: number; pay_rate: number;
+  bill_rate: number; currency: string; status: ProjectStatus; created_at: string; updated_at: string;
+  assigned_contractors_count: number;
 }
 
 export interface ContractorAssignmentResponse {

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getMyVendorDashboard } from "@/api/vendors";
 import { listMyContractors } from "@/api/contractors";
 import { listMyAssignments } from "@/api/assignments";
+import { listProjects } from "@/api/projects";
 import { StatCard, Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { PageLoader, EmptyState } from "@/components/ui/Feedback";
@@ -22,6 +23,7 @@ export function VendorDashboard() {
     queryKey: ["vendor-assignments"],
     queryFn: listMyAssignments,
   });
+  const { data: projects } = useQuery({ queryKey: ["vendor-projects"], queryFn: listProjects });
 
   if (loadingDash) return <PageLoader />;
 
@@ -63,6 +65,12 @@ export function VendorDashboard() {
           }
         />
         <StatCard
+          label="Projects"
+          value={projects?.length ?? 0}
+          hint={`${projects?.filter((p) => p.status === "OPEN" || p.status === "ACTIVE").length ?? 0} open / active`}
+          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5h18M5.25 4.5h13.5a.75.75 0 01.75.75v14.25a.75.75 0 01-.75.75H5.25a.75.75 0 01-.75-.75V5.25a.75.75 0 01.75-.75z" /></svg>}
+        />
+        <StatCard
           label="Pending Timesheets"
           value={dashboard?.pending_timesheets_count ?? 0}
           hint="Phase 2 module"
@@ -85,6 +93,10 @@ export function VendorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>Projects</CardTitle><Link to="/vendor/projects"><Button variant="ghost" size="sm">Manage →</Button></Link></CardHeader>
+          <CardContent className="p-0"><ul className="divide-y divide-ink-100">{(projects || []).slice(0, 4).map((p) => <li key={p.id} className="flex items-center justify-between px-5 py-3"><div><p className="text-sm font-medium text-ink-900">{p.name}</p><p className="text-xs text-ink-500">{p.role} · {p.assigned_contractors_count} assigned</p></div><Link to={`/vendor/assignments/new?project_id=${p.id}`}><Button size="sm" variant="outline">Assign</Button></Link></li>)}</ul>{!projects?.length && <EmptyState title="No projects yet" description="Create a project to start staffing." />}</CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Contractors</CardTitle>
