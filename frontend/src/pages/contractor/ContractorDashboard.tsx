@@ -22,7 +22,7 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
-import { getMyContractorProfile, getMyContractorAssignment } from "@/api/contractors";
+import { getMyContractorProfile, getMyContractorAssignments } from "@/api/contractors";
 import { myTimesheets } from "@/api/timesheets";
 import { myInvoices, myPerformance } from "@/api/invoices";
 import type { Invoice, Timesheet } from "@/api/types";
@@ -116,9 +116,9 @@ export function ContractorDashboard() {
     queryKey: ["contractor-me"],
     queryFn: getMyContractorProfile,
   });
-  const { data: assignmentData } = useQuery({
-    queryKey: ["contractor-assignment"],
-    queryFn: getMyContractorAssignment,
+  const { data: assignments } = useQuery({
+    queryKey: ["contractor-assignments"],
+    queryFn: getMyContractorAssignments,
   });
   const { data: sheets } = useQuery({ queryKey: ["my-timesheets"], queryFn: myTimesheets });
   const { data: invoices } = useQuery({ queryKey: ["my-invoices"], queryFn: myInvoices });
@@ -130,7 +130,7 @@ export function ContractorDashboard() {
     const paid = i.filter((x) => x.status === "PAID");
     const open = i.filter((x) => ["GENERATED", "SUBMITTED", "APPROVED"].includes(x.status));
     return {
-      currency: i[0]?.currency ?? assignmentData?.assignment?.currency ?? "INR",
+      currency: i[0]?.currency ?? assignments?.[0]?.currency ?? "INR",
       approvedHours: s
         .filter((x) => x.display_status === "APPROVED")
         .reduce((n, x) => n + x.total_hours, 0),
@@ -140,7 +140,7 @@ export function ContractorDashboard() {
       awaiting: open.reduce((n, x) => n + x.net_payable, 0),
       openCount: open.length,
     };
-  }, [sheets, invoices, assignmentData]);
+  }, [sheets, invoices, assignments]);
 
   const notices = useMemo(
     () => buildNotices(sheets ?? [], invoices ?? []),
@@ -149,7 +149,7 @@ export function ContractorDashboard() {
 
   if (isLoading) return <PageLoader />;
 
-  const assignment = assignmentData?.assignment;
+  const primary = assignments?.[0];
 
   return (
     <div className="space-y-6">
@@ -198,10 +198,10 @@ export function ContractorDashboard() {
         <div className="space-y-4 lg:col-span-2">
           {/* Current assignment ------------------------------------- */}
           <SectionCard
-            title="Current assignment"
+            title={(assignments?.length ?? 0) > 1 ? `Current assignments (${assignments!.length})` : "Current assignment"}
             icon={<CalendarDays className="h-4 w-4 text-brand-600" />}
             actions={
-              assignment && (
+              primary && (
                 <Link to="/contractor/assignment">
                   <Button variant="ghost" size="sm" icon={<ArrowRight className="h-3.5 w-3.5" />}>
                     Details
@@ -210,32 +210,34 @@ export function ContractorDashboard() {
               )
             }
           >
-            {!assignmentData?.has_assignment || !assignment ? (
+            {!primary ? (
               <EmptyState
                 title="On bench"
                 description="Your vendor hasn't placed you on a project yet. It will appear here as soon as it's created."
               />
             ) : (
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-semibold text-ink-900">
-                    {assignment.project_name}
-                  </span>
-                  <AssignmentStatusBadge status={assignment.status} />
-                  {profile && <ContractorStatusBadge status={profile.status} />}
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-                  <Field label="Role" value={assignment.role} />
-                  <Field
-                    label="Pay rate"
-                    value={`${formatCurrency(assignment.pay_rate, assignment.currency)}/hr`}
-                  />
-                  <Field label="Week" value={`${assignment.working_hours}h`} />
-                  <Field
-                    label="Duration"
-                    value={`${formatDate(assignment.start_date)} → ${formatDate(assignment.end_date)}`}
-                  />
-                </div>
+              <div className="divide-y divide-ink-100">
+                {assignments!.map((a, i) => (
+                  <div key={a.id} className={i === 0 ? "space-y-4 pb-4" : "space-y-4 py-4 last:pb-0"}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base font-semibold text-ink-900">{a.project_name}</span>
+                      <AssignmentStatusBadge status={a.status} />
+                      {i === 0 && profile && <ContractorStatusBadge status={profile.status} />}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+                      <Field label="Role" value={a.role} />
+                      <Field
+                        label="Pay rate"
+                        value={`${formatCurrency(a.pay_rate, a.currency)}/hr`}
+                      />
+                      <Field label="Week" value={`${a.working_hours}h`} />
+                      <Field
+                        label="Duration"
+                        value={`${formatDate(a.start_date)} → ${formatDate(a.end_date)}`}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </SectionCard>

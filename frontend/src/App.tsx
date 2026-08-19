@@ -5,7 +5,6 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "@/pages/LoginPage";
 import { ContractorRegisterPage } from "@/pages/ContractorRegisterPage";
 import { NotFound } from "@/pages/NotFound";
-import { ComingSoonPage } from "@/pages/ComingSoonPage";
 
 import { VendorDashboard } from "@/pages/vendor/VendorDashboard";
 import { VendorProfile } from "@/pages/vendor/VendorProfile";
@@ -47,13 +46,11 @@ function RootRedirect() {
 }
 
 function LoginRoute() {
-  const { isAuthenticated, user, isInitializing } = useAuth();
+  const { isInitializing } = useAuth();
   if (isInitializing) return <PageLoader />;
-  if (isAuthenticated) {
-    return (
-      <Navigate to={user?.role === "VENDOR" ? "/vendor/dashboard" : "/contractor/dashboard"} replace />
-    );
-  }
+  // Deliberately NOT redirected when already signed in: bouncing straight to a
+  // dashboard made it impossible to reach this page to switch accounts. The
+  // form shows who is currently signed in instead.
   return <LoginPage />;
 }
 
@@ -138,14 +135,6 @@ function AppRoutes() {
         path="/vendor/invoices"
         element={<ProtectedRoute allowedRole="VENDOR"><VendorInvoices /></ProtectedRoute>}
       />
-      <Route
-        path="/vendor/payroll"
-        element={
-          <ProtectedRoute allowedRole="VENDOR">
-            <ComingSoonPage title="Payroll" />
-          </ProtectedRoute>
-        }
-      />
 
       {/* Contractor routes */}
       <Route
@@ -179,22 +168,6 @@ function AppRoutes() {
       <Route
         path="/contractor/invoices"
         element={<ProtectedRoute allowedRole="CONTRACTOR"><ContractorInvoices /></ProtectedRoute>}
-      />
-      <Route
-        path="/contractor/expenses"
-        element={
-          <ProtectedRoute allowedRole="CONTRACTOR">
-            <ComingSoonPage title="Expenses" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/contractor/payroll"
-        element={
-          <ProtectedRoute allowedRole="CONTRACTOR">
-            <ComingSoonPage title="Payroll" />
-          </ProtectedRoute>
-        }
       />
 
       <Route path="*" element={<NotFound />} />

@@ -16,3 +16,6 @@ frontend/*.local
 
 # OS
 .DS_Store
+
+# Local email outbox written when SMTP is not configured
+backend/outbox.log

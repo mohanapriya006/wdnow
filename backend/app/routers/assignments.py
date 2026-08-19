@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.notifications import notify_assignment_created
 from app.deps import (
     CurrentUser,
     get_current_user,
@@ -83,10 +84,19 @@ def create_assignment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="End date cannot be before start date.",
         )
-    existing_active = db.query(Assignment).filter(Assignment.contractor_id == contractor.id,
-                                                    Assignment.status == AssignmentStatus.ACTIVE).first()
-    if existing_active:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Contractor already has an active assignment.")
+    # A contractor may hold several concurrent assignments. The same project is
+    # still only assignable once at a time - re-placing someone on a project
+    # they are already actively on would double-count their hours.
+    duplicate = db.query(Assignment).filter(
+        Assignment.contractor_id == contractor.id,
+        Assignment.project_id == project.id,
+        Assignment.status == AssignmentStatus.ACTIVE,
+    ).first()
+    if duplicate:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This contractor already has an active assignment on this project.",
+        )
 
     # vendor_id is ALWAYS derived from the authenticated JWT, never trusted from the client.
     assignment = Assignment(
@@ -116,6 +126,11 @@ def create_assignment(
 
     db.commit()
     db.refresh(assignment)
+
+    # Best-effort: the contractor is emailed this project's details at the
+    # address they signed up with. A mail failure never fails the assignment.
+    notify_assignment_created(assignment)
+
     return _to_detail(assignment)
 
 

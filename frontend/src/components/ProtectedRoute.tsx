@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { UserRole } from "@/api/types";
@@ -13,13 +13,16 @@ export function ProtectedRoute({
   allowedRole: UserRole;
 }) {
   const { user, isAuthenticated, isInitializing } = useAuth();
+  const location = useLocation();
 
   if (isInitializing) {
     return <PageLoader />;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Carry the attempted page so signing in returns here rather than dumping
+    // the user on a dashboard they did not ask for.
+    return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
   }
 
   // Role-based route protection: a contractor can never render vendor pages

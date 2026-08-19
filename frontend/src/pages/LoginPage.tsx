@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
@@ -8,8 +8,12 @@ import { Alert } from "@/components/ui/Feedback";
 import { extractErrorMessage } from "@/api/client";
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Where ProtectedRoute wanted to go before it sent us here.
+  const from = (location.state as { from?: string } | null)?.from ?? null;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,8 +25,12 @@ export function LoginPage() {
     setError(null);
     setIsLoading(true);
     try {
-      const user = await login(email, password);
-      navigate(user.role === "VENDOR" ? "/vendor/dashboard" : "/contractor/dashboard");
+      const signedIn = await login(email, password);
+      const home = signedIn.role === "VENDOR" ? "/vendor/dashboard" : "/contractor/dashboard";
+      // Only honour the remembered page if it belongs to this role's area —
+      // a contractor must never be forwarded onto a vendor route.
+      const area = signedIn.role === "VENDOR" ? "/vendor/" : "/contractor/";
+      navigate(from && from.startsWith(area) ? from : home, { replace: true });
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -97,6 +105,32 @@ export function LoginPage() {
             Sign in to your Vendor or Contractor workspace.
           </p>
 
+          {user && (
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50/70 px-4 py-3">
+              <p className="text-sm text-brand-800">
+                Already signed in as <span className="font-semibold">{user.name}</span> (
+                {user.role.toLowerCase()}).
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    navigate(
+                      user.role === "VENDOR" ? "/vendor/dashboard" : "/contractor/dashboard"
+                    )
+                  }
+                >
+                  Continue
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={logout}>
+                  Sign out
+                </Button>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             {error && <Alert variant="error">{error}</Alert>}
 
@@ -142,7 +176,7 @@ export function LoginPage() {
                 onClick={() => fillDemo("vendor")}
                 className="flex w-full items-center justify-between rounded-lg border border-ink-200 px-3 py-2 text-left text-xs hover:bg-ink-50"
               >
-                <span className="font-medium text-ink-800">ABC Staffing (Vendor)</span>
+                <span className="font-medium text-ink-800">Workday (Vendor)</span>
                 <span className="text-ink-400">vendor@abcstaffing.com</span>
               </button>
               <button

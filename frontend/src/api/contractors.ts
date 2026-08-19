@@ -1,5 +1,6 @@
 import { apiClient } from "./client";
 import type {
+  ContractorAssignmentView,
   Contractor,
   ContractorWithAssignmentStatus,
   ContractorMe,
@@ -40,6 +41,14 @@ export async function getContractor(id: string): Promise<Contractor> {
 
 export async function getMyContractorProfile(): Promise<ContractorMe> {
   const { data } = await apiClient.get<ContractorMe>("/api/contractors/me");
+  return data;
+}
+
+/** Every live assignment — a contractor may be on several projects at once. */
+export async function getMyContractorAssignments(): Promise<ContractorAssignmentView[]> {
+  const { data } = await apiClient.get<ContractorAssignmentView[]>(
+    "/api/contractors/me/assignments"
+  );
   return data;
 }
 

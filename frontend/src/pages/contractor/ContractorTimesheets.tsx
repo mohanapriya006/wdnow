@@ -5,7 +5,7 @@
  * pair, calculates the hours, stores them and re-runs anomaly detection. Every
  * number on this screen comes back from the API — nothing is computed here.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -17,11 +17,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { myTimesheets, logTime, submitTimesheet, deleteTimeEntry } from "@/api/timesheets";
-import { getMyContractorAssignment } from "@/api/contractors";
+import { getMyContractorAssignments } from "@/api/contractors";
 import type { Timesheet } from "@/api/types";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Label, Textarea } from "@/components/ui/Input";
+import { Input, Label, Select, Textarea } from "@/components/ui/Input";
 import { PageLoader, Alert, EmptyState } from "@/components/ui/Feedback";
 import { TimesheetStatusBadge } from "@/components/ui/Badge";
 import {
@@ -72,10 +72,18 @@ export function ContractorTimesheets() {
     queryKey: ["my-timesheets"],
     queryFn: myTimesheets,
   });
-  const { data: assignment } = useQuery({
-    queryKey: ["contractor-assignment"],
-    queryFn: getMyContractorAssignment,
+  // A contractor may hold several concurrent assignments, so the day must be
+  // attributed to one of them explicitly.
+  const { data: assignments } = useQuery({
+    queryKey: ["contractor-assignments"],
+    queryFn: getMyContractorAssignments,
   });
+  const [assignmentId, setAssignmentId] = useState("");
+  const active = (assignments ?? []).find((a) => a.id === assignmentId) ?? assignments?.[0];
+
+  useEffect(() => {
+    if (!assignmentId && assignments?.length) setAssignmentId(assignments[0].id);
+  }, [assignments, assignmentId]);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["my-timesheets"] });
   const save = useMutation({ mutationFn: logTime, onSuccess: () => { setForm(emptyForm); refresh(); } });
@@ -119,7 +127,7 @@ export function ContractorTimesheets() {
         </p>
       </div>
 
-      {!assignment?.has_assignment ? (
+      {!assignments?.length ? (
         <Card>
           <EmptyState
             title="On bench"
@@ -159,11 +167,11 @@ export function ContractorTimesheets() {
 
           {/* Daily entry form ------------------------------------------- */}
           <SectionCard
-            title={`Log today · ${assignment.assignment?.project_name}`}
+            title={`Log today${active ? ` · ${active.project_name}` : ""}`}
             icon={<Clock className="h-4 w-4 text-brand-600" />}
             actions={
               <span className="text-xs font-medium text-ink-500">
-                {assignment.assignment?.role} · {assignment.assignment?.working_hours}h/week
+                {active?.role} · {active?.working_hours}h/week
               </span>
             }
           >
@@ -173,6 +181,7 @@ export function ContractorTimesheets() {
                 e.preventDefault();
                 save.mutate({
                   work_date: workDate,
+                  assignment_id: assignmentId || undefined,
                   start_time: form.start_time,
                   end_time: form.end_time,
                   break_minutes: Number(form.break_minutes) || 0,
@@ -182,6 +191,23 @@ export function ContractorTimesheets() {
               }}
             >
               {save.isError && <Alert variant="error">{extractErrorMessage(save.error)}</Alert>}
+
+              {(assignments?.length ?? 0) > 1 && (
+                <div>
+                  <Label>Project</Label>
+                  <Select value={assignmentId} onChange={(e) => setAssignmentId(e.target.value)}>
+                    {assignments!.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.project_name} — {a.role} ({a.working_hours}h/week)
+                      </option>
+                    ))}
+                  </Select>
+                  <p className="mt-1 text-[11px] text-ink-400">
+                    You are on {assignments!.length} projects. Pick the one this day belongs to —
+                    hours that overlap across projects are flagged for your vendor.
+                  </p>
+                </div>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div>

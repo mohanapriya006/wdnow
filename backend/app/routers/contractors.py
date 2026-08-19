@@ -160,24 +160,9 @@ def get_contractor(
 # Contractor "self" endpoints
 # ---------------------------------------------------------------------------
 
-@router.get("/api/contractors/me/assignment", response_model=ContractorAssignmentOut)
-def get_my_assignment(
-    current_user: CurrentUser = Depends(require_contractor),
-    db: Session = Depends(get_db),
-):
-    # Only ever query by the contractor_id embedded in the verified JWT.
-    assignment = (
-        db.query(Assignment)
-        .filter(Assignment.contractor_id == current_user.contractor_id)
-        .filter(Assignment.status.in_([AssignmentStatus.ACTIVE, AssignmentStatus.DRAFT]))
-        .order_by(Assignment.created_at.desc())
-        .first()
-    )
-
-    if not assignment:
-        return ContractorAssignmentOut(has_assignment=False, assignment=None)
-
-    view = ContractorAssignmentView(
+def _assignment_view(assignment: Assignment) -> ContractorAssignmentView:
+    """Assignment as the contractor may see it. bill_rate is never included."""
+    return ContractorAssignmentView(
         id=assignment.id,
         project_name=assignment.project_name,
         role=assignment.role,
@@ -194,7 +179,45 @@ def get_my_assignment(
         location=assignment.location,
         work_mode=assignment.work_mode,
     )
-    return ContractorAssignmentOut(has_assignment=True, assignment=view)
+
+
+def _my_live_assignments(db: Session, contractor_id: str) -> List[Assignment]:
+    # Only ever query by the contractor_id embedded in the verified JWT.
+    return (
+        db.query(Assignment)
+        .filter(Assignment.contractor_id == contractor_id)
+        .filter(Assignment.status.in_([AssignmentStatus.ACTIVE, AssignmentStatus.DRAFT]))
+        .order_by(Assignment.created_at.desc())
+        .all()
+    )
+
+
+@router.get("/api/contractors/me/assignments", response_model=List[ContractorAssignmentView])
+def get_my_assignments(
+    current_user: CurrentUser = Depends(require_contractor),
+    db: Session = Depends(get_db),
+):
+    """Every live assignment this contractor holds.
+
+    A contractor can be placed on several projects at once, so time logging and
+    the dashboard read this list rather than a single assignment.
+    """
+    return [_assignment_view(a) for a in _my_live_assignments(db, current_user.contractor_id)]
+
+
+@router.get("/api/contractors/me/assignment", response_model=ContractorAssignmentOut)
+def get_my_assignment(
+    current_user: CurrentUser = Depends(require_contractor),
+    db: Session = Depends(get_db),
+):
+    """The contractor's most recent live assignment.
+
+    Retained for callers that only need one; /assignments is the full list.
+    """
+    assignments = _my_live_assignments(db, current_user.contractor_id)
+    if not assignments:
+        return ContractorAssignmentOut(has_assignment=False, assignment=None)
+    return ContractorAssignmentOut(has_assignment=True, assignment=_assignment_view(assignments[0]))
 
 
 # Milestones are a vendor planning artefact. There is deliberately no

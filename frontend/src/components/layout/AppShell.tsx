@@ -34,12 +34,6 @@ const icons = {
   invoices: (
     <svg {...iconProps}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
   ),
-  payroll: (
-    <svg {...iconProps}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182.553-.44 1.278-.659 2.003-.659.725 0 1.45.22 2.003.659l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  ),
-  expenses: (
-    <svg {...iconProps}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>
-  ),
 };
 
 const vendorNav: NavItem[] = [
@@ -50,7 +44,6 @@ const vendorNav: NavItem[] = [
   { label: "Timesheets", to: "/vendor/timesheets", icon: icons.timesheets },
   { label: "Milestones", to: "/vendor/milestones", icon: icons.milestones },
   { label: "Invoices", to: "/vendor/invoices", icon: icons.invoices },
-  { label: "Payroll", to: "/vendor/payroll", icon: icons.payroll, comingSoon: true },
 ];
 
 // Milestones are a vendor planning artefact and are intentionally absent here:
@@ -60,8 +53,6 @@ const contractorNav: NavItem[] = [
   { label: "My Assignment", to: "/contractor/assignment", icon: icons.assignments },
   { label: "Timesheets", to: "/contractor/timesheets", icon: icons.timesheets },
   { label: "Invoices", to: "/contractor/invoices", icon: icons.invoices },
-  { label: "Expenses", to: "/contractor/expenses", icon: icons.expenses, comingSoon: true },
-  { label: "Payroll", to: "/contractor/payroll", icon: icons.payroll, comingSoon: true },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

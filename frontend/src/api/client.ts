@@ -32,14 +32,28 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * Subscribers notified when the API rejects our credentials.
+ *
+ * The auth context registers here so a 401 tears the session down through
+ * React and the router. A hard `window.location` redirect used to clear only
+ * the token, leaving an orphaned user record behind that resurrected the
+ * session on the next boot.
+ */
+type UnauthorizedHandler = () => void;
+const unauthorizedHandlers = new Set<UnauthorizedHandler>();
+
+export function onUnauthorized(handler: UnauthorizedHandler): () => void {
+  unauthorizedHandlers.add(handler);
+  return () => unauthorizedHandlers.delete(handler);
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorBody>) => {
     if (error.response?.status === 401) {
       clearStoredToken();
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
-      }
+      unauthorizedHandlers.forEach((handler) => handler());
     }
     return Promise.reject(error);
   }
