@@ -1,4 +1,6 @@
+import json
 import os
+
 from dotenv import load_dotenv
 
 from app.ai.prompts import (
@@ -102,6 +104,47 @@ class LLMExplanationService:
             match_score=match_score,
             recommendation=recommendation,
         )
+
+    def generate_json(
+        self,
+        *,
+        system_instruction: str,
+        prompt: str,
+        max_output_tokens: int = 700,
+        temperature: float = 0.2,
+    ) -> dict | None:
+        """Ask the shared Gemini client for a structured JSON object.
+
+        Returns None whenever the model is unavailable, errors, or replies with
+        something that is not JSON - callers are expected to fall back to a
+        deterministic explanation rather than surfacing an error.
+        """
+        if not self.client:
+            return None
+        try:
+            from google.genai import types
+
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=temperature,
+                    max_output_tokens=max_output_tokens,
+                    response_mime_type="application/json",
+                ),
+            )
+            if not response or not response.text:
+                return None
+            text = response.text.strip()
+            # Tolerate a fenced ```json block if the model adds one.
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                text = text[4:] if text.lower().startswith("json") else text
+            parsed = json.loads(text.strip())
+            return parsed if isinstance(parsed, dict) else None
+        except Exception:
+            return None
 
     def _generate_heuristic_explanation(
         self,

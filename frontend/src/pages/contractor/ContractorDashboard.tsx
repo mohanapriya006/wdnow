@@ -1,7 +1,7 @@
 /**
- * Worker dashboard.
+ * Contractor dashboard.
  *
- * Shows what a contingent worker actually needs: their current assignment,
+ * Shows what a contractor actually needs: their current assignment,
  * weekly reporting status, hours worked, earnings and invoice status, their
  * performance score, and a notification feed derived from those same records.
  * Milestones are a vendor planning artefact and are deliberately absent.

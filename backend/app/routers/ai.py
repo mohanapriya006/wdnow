@@ -3,7 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import CurrentUser, require_vendor
+from app.models import Assignment, Timesheet
+from app.schemas import TimesheetExplanationOut, TimesheetExplanationRequest
+from app import timesheet_risk as risk
 from app.ai.llm import LLMExplanationService
+from app.ai.timesheet_explanation import explain_timesheet_risk
 from app.ai.matching_engine import rank_contractors
 from app.ai.schemas import (
     MatchRequest,
@@ -94,3 +98,50 @@ def match_contractors(
         total_contractors=len(request.contractors),
         recommendations=recommendations,
     )
+
+@router.post(
+    "/timesheet-explanation",
+    response_model=TimesheetExplanationOut,
+)
+def timesheet_explanation(
+    request: TimesheetExplanationRequest,
+    current_user: CurrentUser = Depends(require_vendor),
+    db: Session = Depends(get_db),
+):
+    """Explain an already-detected contractor timesheet anomaly.
+
+    RBAC is the security boundary, not the model. The chain is:
+    JWT -> require_vendor -> the timesheet must belong to an assignment this
+    vendor owns -> only then is a minimal, single-contractor context assembled
+    and sent to Gemini. No other contractor's data can reach the prompt.
+
+    The rule engine has already decided the risk level; this endpoint only puts
+    that decision into words, and falls back to deterministic text if Gemini is
+    unavailable.
+    """
+    sheet = (
+        db.query(Timesheet)
+        .join(Assignment, Timesheet.assignment_id == Assignment.id)
+        .filter(
+            Timesheet.id == request.timesheet_id,
+            Assignment.vendor_id == current_user.vendor_id,
+        )
+        .first()
+    )
+    if not sheet:
+        # Same response whether it does not exist or belongs to another vendor.
+        raise HTTPException(status_code=404, detail="Timesheet not found.")
+
+    profile = risk.risk_profile(db, sheet)
+    total_hours = round(sum(float(e.total_hours or 0) for e in sheet.entries), 2)
+
+    result = explain_timesheet_risk(
+        contractor_name=sheet.assignment.contractor.name,
+        week_start=sheet.week_start.isoformat(),
+        week_end=sheet.week_end.isoformat(),
+        total_hours=total_hours,
+        risk_level=profile["severity"] or "NONE",
+        anomalies=profile["anomalies"],
+        days=profile["days"],
+    )
+    return TimesheetExplanationOut(**result)

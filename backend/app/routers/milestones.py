@@ -6,7 +6,7 @@ project, overdue and at-risk counts, planned-versus-actual delivery, upcoming
 deadlines and recent activity.
 
 Read-only and vendor-only. Milestones are a vendor planning artefact and are
-not exposed to workers anywhere in the API.
+not exposed to contractors anywhere in the API.
 """
 from datetime import date, timedelta
 from typing import Dict, List, Optional

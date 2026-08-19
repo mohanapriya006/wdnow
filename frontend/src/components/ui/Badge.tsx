@@ -175,7 +175,7 @@ export function RiskBadge({ risk }: { risk: MilestoneRisk }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Worker performance                                                  */
+/* Contractor performance                                              */
 /* ------------------------------------------------------------------ */
 
 const bandStyles: Record<PerformanceBand, string> = {

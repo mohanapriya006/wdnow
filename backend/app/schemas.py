@@ -291,25 +291,47 @@ class TimeEntryCreate(BaseModel):
     clients but start/end time is the supported path.
     """
     work_date: date
+    #: Which assignment this day belongs to. Omit to use the active assignment;
+    #: required in practice only when a contractor holds more than one.
+    assignment_id: Optional[str] = None
     start_time: Optional[str] = Field(default=None, description="HH:MM, 24-hour")
     end_time: Optional[str] = Field(default=None, description="HH:MM, 24-hour")
     clock_in: Optional[str] = None   # legacy alias for start_time
     clock_out: Optional[str] = None  # legacy alias for end_time
     manual_hours: Optional[float] = Field(default=None, gt=0, le=24)
     break_minutes: int = Field(default=0, ge=0, le=720)
-    # No milestone_id: milestones are vendor-only, so a worker cannot attribute
+    # No milestone_id: milestones are vendor-only, so a contractor cannot attribute
     # time to one. The stored column is still surfaced on the vendor's views.
     work_location: Optional[str] = None
     notes: Optional[str] = None
 
 
+class OverlapAssignmentOut(BaseModel):
+    """One side of an overlapping pair, as shown on the review timeline."""
+    project: str
+    assignment_id: Optional[str] = None
+    start: str
+    end: str
+
+
 class AnomalyOut(BaseModel):
-    """One detected problem, always carrying its own explanation."""
+    """One detected problem, always carrying its own explanation.
+
+    Cross-assignment findings add the evidence the vendor needs to judge them:
+    the hours reported, the ceiling that was breached, the projects involved and
+    the exact overlapping windows.
+    """
     type: str
     severity: str
     date: date
-    hours: float
+    hours: float = 0
     reason: str
+    reported_hours: Optional[float] = None
+    maximum_hours: Optional[float] = None
+    overlap_hours: Optional[float] = None
+    projects: List[str] = []
+    assignments: List[OverlapAssignmentOut] = []
+    assignment_id: Optional[str] = None
 
 
 class TimeEntryOut(BaseModel):
@@ -367,6 +389,10 @@ class TimesheetOut(BaseModel):
     has_anomalies: bool = False
     anomaly_count: int = 0
     anomaly_severity: Optional[str] = None
+    #: FLAGGED / WARNING / CLEAN, derived from the highest severity found.
+    flag_status: str = "CLEAN"
+    #: One line the vendor can read without opening the timesheet.
+    flag_reason: Optional[str] = None
     anomalies: List[AnomalyOut] = []
     entries: List[TimeEntryOut] = []
     audit_history: List[str] = []
@@ -377,8 +403,13 @@ class TimesheetSubmit(BaseModel):
 
 
 class TimesheetReview(BaseModel):
-    """APPROVE or REJECT a weekly report. REJECT always requires a reason."""
-    action: str = Field(pattern="^(APPROVE|REJECT|FLAG)$")
+    """Vendor decision on a weekly report.
+
+    REJECT and REQUEST_CORRECTION both require a reason. REQUEST_CORRECTION
+    returns the week to the contractor as a draft they can edit and resubmit,
+    without recording a rejection against it.
+    """
+    action: str = Field(pattern="^(APPROVE|REJECT|REQUEST_CORRECTION|FLAG)$")
     reason: Optional[str] = None
     comment: Optional[str] = None  # legacy alias for reason
     entry_id: Optional[str] = None
@@ -424,14 +455,14 @@ class ContractorAssignmentOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Worker performance (analytical KPI - never alters a contractual rate)
+# Contractor performance (analytical KPI - never alters a contractual rate)
 # ---------------------------------------------------------------------------
 
 class PerformanceComponentOut(BaseModel):
     key: str
     label: str
     weight: float
-    #: 0-100, or null when the underlying data does not exist for this worker.
+    #: 0-100, or null when the underlying data does not exist for this contractor.
     value: Optional[float] = None
     #: Share of the final score this component actually carried.
     applied_weight: float = 0
@@ -709,3 +740,99 @@ class MilestoneDashboardOut(BaseModel):
     upcoming_deadlines: List[MilestoneRowOut] = []
     recent_activity: List[MilestoneRowOut] = []
     milestones: List[MilestoneRowOut] = []
+
+
+# ---------------------------------------------------------------------------
+# Contractor timesheet risk review (vendor)
+# ---------------------------------------------------------------------------
+
+class RiskDayEntryOut(BaseModel):
+    """One assignment's block of time on a contested calendar day."""
+    entry_id: str
+    assignment_id: str
+    project: str
+    start: Optional[str] = None
+    end: Optional[str] = None
+    hours: float
+
+
+class RiskOverlapOut(BaseModel):
+    overlap_hours: float
+    assignments: List[OverlapAssignmentOut] = []
+
+
+class RiskDayOut(BaseModel):
+    """A contractor's full calendar day, across every assignment."""
+    date: date
+    reported_hours: float
+    maximum_hours: float
+    projects: List[str] = []
+    multi_project: bool = False
+    entries: List[RiskDayEntryOut] = []
+    overlaps: List[RiskOverlapOut] = []
+
+
+class TimesheetRiskOut(BaseModel):
+    """A timesheet as it appears in the vendor's risk review list."""
+    timesheet_id: str
+    contractor_id: str
+    contractor_name: str
+    project_id: Optional[str] = None
+    project_name: str
+    week_start: date
+    week_end: date
+    status: TimesheetStatus
+    display_status: str
+    submitted_at: Optional[datetime] = None
+    total_hours: float = 0
+    regular_hours: float = 0
+    overtime_hours: float = 0
+    #: FLAGGED / WARNING / CLEAN
+    flag_status: str = "CLEAN"
+    severity: Optional[str] = None
+    anomaly_count: int = 0
+    flag_reason: Optional[str] = None
+    #: Every project this contractor touched during the week, across assignments.
+    projects_involved: List[str] = []
+    max_daily_hours: float = 0
+    anomalies: List[AnomalyOut] = []
+    days: List[RiskDayOut] = []
+
+
+class TimesheetRiskSummaryOut(BaseModel):
+    """Counts for the vendor dashboard risk panel."""
+    critical: int = 0
+    high: int = 0
+    medium: int = 0
+    low: int = 0
+    clean: int = 0
+    flagged: int = 0
+    warning: int = 0
+    total: int = 0
+    pending_review: int = 0
+
+
+class TimesheetRiskBoardOut(BaseModel):
+    summary: TimesheetRiskSummaryOut
+    timesheets: List[TimesheetRiskOut] = []
+
+
+# ---------------------------------------------------------------------------
+# AI timesheet explanation
+# ---------------------------------------------------------------------------
+
+class TimesheetExplanationRequest(BaseModel):
+    timesheet_id: str
+
+
+class TimesheetExplanationOut(BaseModel):
+    """Neutral, structured explanation of an already-detected anomaly."""
+    risk_level: str
+    title: str
+    summary: str
+    reasons: List[str] = []
+    overlap_summary: Optional[str] = None
+    recommendation: str
+    disclaimer: str
+    #: True when Gemini was unavailable and the deterministic fallback was used.
+    generated_offline: bool = False

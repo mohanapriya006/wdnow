@@ -1,7 +1,7 @@
 /**
- * Worker Invoices.
+ * Contractor Invoices.
  *
- * Read-only view of the invoices raised for this worker's approved hours, with
+ * Read-only view of the invoices raised for this contractor's approved hours, with
  * the full calculation — hours, contractual rate, taxes, deductions,
  * adjustments and final payable — plus a printable invoice document.
  */
@@ -241,7 +241,7 @@ function PrintableInvoice({ invoice, onDone }: { invoice: Invoice; onDone: () =>
 
         <div className="mt-6 grid grid-cols-2 gap-6 text-sm">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">Worker</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">Contractor</p>
             <p className="mt-1 font-semibold text-ink-900">{invoice.contractor_name}</p>
             <p className="text-ink-600">{invoice.role}</p>
           </div>

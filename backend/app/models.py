@@ -274,6 +274,10 @@ class Timesheet(Base):
     anomaly_count = Column(Integer, default=0, nullable=False)
     anomaly_severity = Column(String, nullable=True)
     week_anomalies = Column(Text, nullable=True)  # JSON, week-level findings only
+    # JSON. Cross-assignment findings (>24h calendar days, overlapping projects)
+    # written by app.timesheet_risk, which can see the contractor's other
+    # assignments where the per-sheet rules cannot.
+    cross_anomalies = Column(Text, nullable=True)
     # Set when the week's approved hours are billed. A non-null value is what
     # stops the same weekly report being invoiced twice.
     invoice_id = Column(String, ForeignKey("invoices.id"), nullable=True, index=True)

@@ -2,7 +2,7 @@
 
 Vendor:   review billable work -> preview -> generate -> submit -> approve ->
           mark paid (or reject, which releases the weeks for re-billing).
-Worker:   read-only view of their own invoices with the full breakdown.
+Contractor: read-only view of their own invoices with the full breakdown.
 
 Every amount is produced by app.invoicing on the server. Requests carry only
 selection and workflow input (which assignment, which period, an adjustment, a
@@ -467,12 +467,12 @@ def contractor_performance(
 
 
 # ---------------------------------------------------------------------------
-# Worker
+# Contractor
 # ---------------------------------------------------------------------------
 
 @router.get("/me", response_model=List[InvoiceOut])
 def my_invoices(current: CurrentUser = Depends(require_contractor), db: Session = Depends(get_db)):
-    """Invoices raised for this worker's own approved work."""
+    """Invoices raised for this contractor's own approved work."""
     invoices = (
         db.query(Invoice)
         .filter(Invoice.contractor_id == current.contractor_id)
@@ -500,7 +500,7 @@ def get_invoice(
     current: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """One invoice, readable by the owning vendor or the worker it bills."""
+    """One invoice, readable by the owning vendor or the contractor it bills."""
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found.")

@@ -114,8 +114,19 @@ export type TimesheetStatus = "DRAFT" | "SUBMITTED" | "FLAGGED" | "APPROVED" | "
 export type TimesheetDisplayStatus = "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
 export type AnomalySeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AnomalyType =
-  | "EXCESSIVE_HOURS" | "HOLIDAY_WORK" | "OVERLAPPING_ENTRY"
-  | "MISSING_END_TIME" | "INVALID_END_TIME" | "DUPLICATE_ENTRY" | "TIME_RULE_VIOLATION";
+  | "OVER_24_HOURS" | "OVERLAPPING_ASSIGNMENTS" | "DUPLICATE_TIME_ENTRY"
+  | "EXCESSIVE_DAILY_HOURS" | "EXCESSIVE_WEEKLY_HOURS" | "ASSIGNMENT_HOUR_LIMIT_EXCEEDED"
+  | "HOLIDAY_WORK" | "OVERLAPPING_ENTRY"
+  | "MISSING_END_TIME" | "INVALID_END_TIME" | "TIME_RULE_VIOLATION";
+
+export type FlagStatus = "FLAGGED" | "WARNING" | "CLEAN";
+
+export interface OverlapAssignment {
+  project: string;
+  assignment_id: string | null;
+  start: string;
+  end: string;
+}
 
 export interface Anomaly {
   type: AnomalyType | string;
@@ -123,6 +134,89 @@ export interface Anomaly {
   date: string;
   hours: number;
   reason: string;
+  /** Cross-assignment evidence, present on risk findings. */
+  reported_hours?: number | null;
+  maximum_hours?: number | null;
+  overlap_hours?: number | null;
+  projects?: string[];
+  assignments?: OverlapAssignment[];
+  assignment_id?: string | null;
+}
+
+export interface RiskDayEntry {
+  entry_id: string;
+  assignment_id: string;
+  project: string;
+  start: string | null;
+  end: string | null;
+  hours: number;
+}
+
+export interface RiskOverlap {
+  overlap_hours: number;
+  assignments: OverlapAssignment[];
+}
+
+export interface RiskDay {
+  date: string;
+  reported_hours: number;
+  maximum_hours: number;
+  projects: string[];
+  multi_project: boolean;
+  entries: RiskDayEntry[];
+  overlaps: RiskOverlap[];
+}
+
+export interface TimesheetRisk {
+  timesheet_id: string;
+  contractor_id: string;
+  contractor_name: string;
+  project_id: string | null;
+  project_name: string;
+  week_start: string;
+  week_end: string;
+  status: TimesheetStatus;
+  display_status: TimesheetDisplayStatus;
+  submitted_at: string | null;
+  total_hours: number;
+  regular_hours: number;
+  overtime_hours: number;
+  flag_status: FlagStatus;
+  severity: AnomalySeverity | null;
+  anomaly_count: number;
+  flag_reason: string | null;
+  projects_involved: string[];
+  max_daily_hours: number;
+  anomalies: Anomaly[];
+  days: RiskDay[];
+}
+
+export interface TimesheetRiskSummary {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  clean: number;
+  flagged: number;
+  warning: number;
+  total: number;
+  pending_review: number;
+}
+
+export interface TimesheetRiskBoard {
+  summary: TimesheetRiskSummary;
+  timesheets: TimesheetRisk[];
+}
+
+export interface TimesheetExplanation {
+  risk_level: string;
+  title: string;
+  summary: string;
+  reasons: string[];
+  overlap_summary: string | null;
+  recommendation: string;
+  disclaimer: string;
+  generated_offline: boolean;
 }
 
 export interface TimeEntry {
@@ -155,6 +249,7 @@ export interface Timesheet {
   regular_hours: number; overtime_hours: number; total_hours: number;
   compensation: number; currency: string; days_logged: number;
   has_anomalies: boolean; anomaly_count: number; anomaly_severity: AnomalySeverity | null;
+  flag_status: FlagStatus; flag_reason: string | null;
   anomalies: Anomaly[]; entries: TimeEntry[]; audit_history: string[];
 }
 export interface ProjectTimesheetAnalytics {
@@ -171,7 +266,7 @@ export interface ContractorAssignmentResponse {
 }
 
 /* ------------------------------------------------------------------ */
-/* Worker performance (analytical KPI, never a rate change)            */
+/* Contractor performance (analytical KPI, never a rate change)        */
 /* ------------------------------------------------------------------ */
 
 export type PerformanceBand = "EXCELLENT" | "STRONG" | "FAIR" | "NEEDS_ATTENTION" | "NO_DATA";

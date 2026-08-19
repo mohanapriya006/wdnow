@@ -34,6 +34,7 @@ def upgrade_timesheet_schema() -> None:
         "anomaly_count": "INTEGER DEFAULT 0 NOT NULL",
         "anomaly_severity": "VARCHAR(20)",
         "week_anomalies": "TEXT",
+        "cross_anomalies": "TEXT",
     }
     if engine.dialect.name != "postgresql":
         # SQLite cannot express DOUBLE PRECISION / NOT NULL-with-default here.

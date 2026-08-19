@@ -102,7 +102,7 @@ export function VendorInvoices() {
         <MoneyTile
           label="Ready to bill"
           value={formatCurrency(summary?.billable_estimated_net ?? 0, cur)}
-          sub={`${summary?.billable_hours ?? 0}h across ${summary?.billable_contractors ?? 0} worker(s)`}
+          sub={`${summary?.billable_hours ?? 0}h across ${summary?.billable_contractors ?? 0} contractor(s)`}
           tone={summary?.billable_contractors ? "brand" : "neutral"}
           icon={<Sparkles className="h-3.5 w-3.5" />}
         />
@@ -208,7 +208,7 @@ function BillablePanel({ onDone }: { onDone: () => void }) {
       <Card>
         <EmptyState
           title="Nothing to bill yet"
-          description="Approve a worker's weekly report in Timesheets and their hours will appear here, ready to invoice."
+          description="Approve a contractor's weekly report in Timesheets and their hours will appear here, ready to invoice."
           icon={<Receipt className="h-6 w-6" />}
         />
       </Card>
@@ -500,14 +500,14 @@ function LedgerPanel({ onDone }: { onDone: () => void }) {
             <Label>Search</Label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-              <Input className="pl-9" placeholder="Invoice number or worker"
+              <Input className="pl-9" placeholder="Invoice number or contractor"
                 value={filters.q ?? ""} onChange={(e) => set({ q: e.target.value })} />
             </div>
           </div>
           <div>
-            <Label>Worker</Label>
+            <Label>Contractor</Label>
             <Select value={filters.contractor_id ?? ""} onChange={(e) => set({ contractor_id: e.target.value })}>
-              <option value="">All workers</option>
+              <option value="">All contractors</option>
               {(contractors ?? []).map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}

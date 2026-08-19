@@ -54,7 +54,7 @@ const vendorNav: NavItem[] = [
 ];
 
 // Milestones are a vendor planning artefact and are intentionally absent here:
-// the worker has no milestone route, API access, or navigation entry.
+// the contractor has no milestone route, API access, or navigation entry.
 const contractorNav: NavItem[] = [
   { label: "Dashboard", to: "/contractor/dashboard", icon: icons.dashboard },
   { label: "My Assignment", to: "/contractor/assignment", icon: icons.assignments },

@@ -28,6 +28,9 @@ from app.models import (
 )
 from app.schemas import (
     ContractorTimesheetSummary,
+    TimesheetRiskBoardOut,
+    TimesheetRiskOut,
+    TimesheetRiskSummaryOut,
     ProjectTimesheetAnalytics,
     TimeEntryCreate,
     TimeEntryOut,
@@ -36,6 +39,7 @@ from app.schemas import (
     TimesheetSubmit,
 )
 from app import timesheet_rules as rules
+from app import timesheet_risk as risk
 
 router = APIRouter(prefix="/api/timesheets", tags=["timesheets"])
 
@@ -94,7 +98,11 @@ def serialise(sheet: Timesheet) -> TimesheetOut:
     # numbers on screen can never drift from what is in PostgreSQL.
     total = round(sum(e.total_hours for e in entries), 2)
     regular, overtime = rules.split_regular_overtime(total, capacity)
-    anomalies = entry_anomalies + rules.load_anomalies(sheet.week_anomalies)
+    anomalies = (
+        entry_anomalies
+        + rules.load_anomalies(sheet.week_anomalies)
+        + rules.load_anomalies(sheet.cross_anomalies)
+    )
 
     return TimesheetOut(
         id=sheet.id, assignment_id=sheet.assignment_id, project_id=assignment.project_id,
@@ -109,7 +117,10 @@ def serialise(sheet: Timesheet) -> TimesheetOut:
         total_hours=total, compensation=round(total * assignment.pay_rate, 2),
         currency=assignment.currency, days_logged=len({e.work_date for e in entries}),
         has_anomalies=bool(anomalies), anomaly_count=len(anomalies),
-        anomaly_severity=sheet.anomaly_severity, anomalies=anomalies, entries=entries,
+        anomaly_severity=sheet.anomaly_severity,
+        flag_status=rules.flag_status(anomalies),
+        flag_reason=risk.headline_reason(anomalies),
+        anomalies=anomalies, entries=entries,
         audit_history=[
             f"{a.created_at:%Y-%m-%d %H:%M} {a.actor_role}: {a.action}"
             f"{': ' + a.detail if a.detail else ''}"
@@ -153,7 +164,15 @@ def log_entry(
     duration -> no duplicate/overlap. Only then is the row written and the week
     re-evaluated for anomalies.
     """
-    assignment = active_assignment(db, current.contractor_id)
+    if payload.assignment_id:
+        assignment = db.query(Assignment).filter(
+            Assignment.id == payload.assignment_id,
+            Assignment.contractor_id == current.contractor_id,
+        ).first()
+        if not assignment:
+            raise HTTPException(status_code=404, detail='Assignment not found for this contractor.')
+    else:
+        assignment = active_assignment(db, current.contractor_id)
     if not assignment:
         raise HTTPException(status_code=409, detail='You must have an active assignment to log time.')
 
@@ -223,6 +242,7 @@ def log_entry(
     db.flush()
     db.expire(sheet, ['entries'])
     rules.evaluate_timesheet(sheet)
+    risk.refresh_contractor_risk(db, current.contractor_id, [payload.work_date])
     audit(db, sheet, 'CONTRACTOR', 'DAILY_ENTRY_SAVED',
           f'{payload.work_date} {start_at:%H:%M}-{end_at:%H:%M} = {total:g}h')
     db.commit()
@@ -251,10 +271,12 @@ def delete_entry(
             detail=f'This week is {DISPLAY_STATUS.get(sheet.status)} and can no longer be edited.',
         )
     audit(db, sheet, 'CONTRACTOR', 'DAILY_ENTRY_DELETED', str(entry.work_date))
+    removed_date = entry.work_date
     db.delete(entry)
     db.flush()
     db.expire(sheet, ['entries'])
     rules.evaluate_timesheet(sheet)
+    risk.refresh_contractor_risk(db, current.contractor_id, [removed_date])
     db.commit()
     db.refresh(sheet)
     return serialise(sheet)
@@ -283,6 +305,7 @@ def submit(
         raise HTTPException(status_code=400, detail='Add daily entries before submitting.')
 
     rules.evaluate_timesheet(sheet)
+    risk.refresh_contractor_risk(db, current.contractor_id, [e.work_date for e in sheet.entries])
     sheet.status = TimesheetStatus.SUBMITTED
     sheet.contractor_summary = payload.contractor_summary
     sheet.submitted_at = datetime.utcnow()
@@ -298,6 +321,107 @@ def submit(
 # ---------------------------------------------------------------------------
 # Vendor: Timesheets -> Projects -> Contractor -> Weekly reports
 # ---------------------------------------------------------------------------
+
+@router.get('/vendor/risk', response_model=TimesheetRiskBoardOut)
+def risk_board(
+    flag: Optional[str] = Query(default=None, description='FLAGGED | WARNING | CLEAN'),
+    severity: Optional[str] = Query(default=None, description='CRITICAL | HIGH | MEDIUM | LOW'),
+    contractor_id: Optional[str] = Query(default=None),
+    project_id: Optional[str] = Query(default=None),
+    q: Optional[str] = Query(default=None, description='Contractor or project name'),
+    current: CurrentUser = Depends(require_vendor),
+    db: Session = Depends(get_db),
+):
+    """Contractor timesheet risk across the whole vendor programme.
+
+    Every figure here is produced by the deterministic rule engine. Drafts are
+    excluded: a week the contractor has not submitted is not yet the vendor's
+    to review.
+    """
+    sheets = (
+        db.query(Timesheet).join(Assignment)
+        .filter(
+            Assignment.vendor_id == current.vendor_id,
+            Timesheet.status != TimesheetStatus.DRAFT,
+        )
+        .order_by(Timesheet.week_start.desc())
+        .all()
+    )
+
+    rows: List[TimesheetRiskOut] = []
+    summary = TimesheetRiskSummaryOut()
+    for sheet in sheets:
+        profile = risk.risk_profile(db, sheet)
+        anomalies = profile['anomalies']
+        total = round(sum(float(e.total_hours or 0) for e in sheet.entries), 2)
+        capacity = float(sheet.assignment.working_hours or 40)
+        regular, overtime = rules.split_regular_overtime(total, capacity)
+        projects = sorted({p for d in profile['days'] for p in d['projects']}) or [
+            sheet.assignment.project_name
+        ]
+
+        summary.total += 1
+        if sheet.status == TimesheetStatus.SUBMITTED:
+            summary.pending_review += 1
+        status_key = profile['flag_status']
+        if status_key == 'FLAGGED':
+            summary.flagged += 1
+        elif status_key == 'WARNING':
+            summary.warning += 1
+        else:
+            summary.clean += 1
+        worst = profile['severity']
+        if worst == 'CRITICAL':
+            summary.critical += 1
+        elif worst == 'HIGH':
+            summary.high += 1
+        elif worst == 'MEDIUM':
+            summary.medium += 1
+        elif worst == 'LOW':
+            summary.low += 1
+
+        rows.append(TimesheetRiskOut(
+            timesheet_id=sheet.id,
+            contractor_id=sheet.assignment.contractor_id,
+            contractor_name=sheet.assignment.contractor.name,
+            project_id=sheet.assignment.project_id,
+            project_name=sheet.assignment.project_name,
+            week_start=sheet.week_start, week_end=sheet.week_end,
+            status=sheet.status,
+            display_status=DISPLAY_STATUS.get(sheet.status, sheet.status.value),
+            submitted_at=sheet.submitted_at,
+            total_hours=total, regular_hours=regular, overtime_hours=overtime,
+            flag_status=status_key, severity=worst, anomaly_count=len(anomalies),
+            flag_reason=risk.headline_reason(anomalies),
+            projects_involved=projects,
+            max_daily_hours=max((d['reported_hours'] for d in profile['days']), default=0),
+            anomalies=anomalies, days=profile['days'],
+        ))
+
+    # Filters narrow the list; the summary always reflects the whole programme
+    # so the dashboard counts do not move as the vendor filters.
+    filtered = rows
+    if flag:
+        filtered = [r for r in filtered if r.flag_status == flag.upper()]
+    if severity:
+        filtered = [r for r in filtered if r.severity == severity.upper()]
+    if contractor_id:
+        filtered = [r for r in filtered if r.contractor_id == contractor_id]
+    if project_id:
+        filtered = [r for r in filtered if r.project_id == project_id]
+    if q:
+        term = q.strip().lower()
+        filtered = [
+            r for r in filtered
+            if term in r.contractor_name.lower()
+            or term in r.project_name.lower()
+            or any(term in p.lower() for p in r.projects_involved)
+        ]
+
+    order = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, None: 4}
+    filtered.sort(key=lambda r: (order.get(r.severity, 4), r.week_start), reverse=False)
+    return TimesheetRiskBoardOut(summary=summary, timesheets=filtered)
+
 
 @router.get('/vendor/projects', response_model=List[ProjectTimesheetAnalytics])
 def project_analytics(current: CurrentUser = Depends(require_vendor), db: Session = Depends(get_db)):
@@ -408,6 +532,17 @@ def review(
         sheet.rejected_at = None
         sheet.rejection_reason = None
         audit(db, sheet, 'VENDOR', 'APPROVED', reason or None)
+    elif payload.action == 'REQUEST_CORRECTION':
+        if not reason:
+            raise HTTPException(status_code=400, detail='Tell the contractor what to correct.')
+        # Sent back as a draft rather than a rejection: the contractor can edit
+        # and resubmit, and no rejection is recorded against the week.
+        sheet.vendor_comment = reason
+        sheet.status = TimesheetStatus.DRAFT
+        sheet.submitted_at = None
+        sheet.rejected_at = None
+        sheet.rejection_reason = None
+        audit(db, sheet, 'VENDOR', 'CORRECTION_REQUESTED', reason)
     elif payload.action in ('REJECT', 'FLAG'):
         if not reason:
             raise HTTPException(status_code=400, detail='A rejection reason is required.')
@@ -426,7 +561,10 @@ def review(
             entry.flag_reason = reason
         audit(db, sheet, 'VENDOR', 'REJECTED', reason)
     else:
-        raise HTTPException(status_code=400, detail='Action must be APPROVE or REJECT.')
+        raise HTTPException(
+            status_code=400,
+            detail='Action must be APPROVE, REJECT or REQUEST_CORRECTION.',
+        )
 
     db.commit()
     db.refresh(sheet)

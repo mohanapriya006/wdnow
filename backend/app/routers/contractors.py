@@ -118,7 +118,7 @@ def get_my_contractor_profile(
     current_user: CurrentUser = Depends(require_contractor),
     db: Session = Depends(get_db),
 ):
-    """The signed-in worker's own profile.
+    """The signed-in contractor's own profile.
 
     Declared before /api/contractors/{contractor_id}: FastAPI matches routes in
     registration order, so the literal "me" path must win over the parameter.
@@ -198,5 +198,5 @@ def get_my_assignment(
 
 
 # Milestones are a vendor planning artefact. There is deliberately no
-# contractor-facing milestone endpoint: workers see assignments, timesheets and
+# contractor-facing milestone endpoint: contractors see assignments, timesheets and
 # invoices instead.

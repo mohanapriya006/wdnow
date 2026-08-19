@@ -1,4 +1,4 @@
-"""Worker performance scoring.
+"""Contractor performance scoring.
 
 A transparent, weighted model built only from records already in the database:
 weekly reports, their approval outcomes, logged hours, submission timestamps
@@ -9,7 +9,7 @@ an assignment - `simulate_performance_value` exists purely so the UI can show a
 "what a performance-linked rate would look like" figure alongside the real one.
 
 Components whose source data does not exist for a contractor are dropped and
-the remaining weights are renormalised, so a brand-new worker is not punished
+the remaining weights are renormalised, so a brand-new contractor is not punished
 for metrics the platform cannot yet measure.
 """
 from __future__ import annotations

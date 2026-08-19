@@ -6,6 +6,7 @@
  * rejects, and a rejection always requires a reason.
  */
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -16,6 +17,7 @@ import {
   ClipboardList,
   Clock,
   FolderKanban,
+  ShieldAlert,
   ShieldCheck,
   TrendingUp,
   Users,
@@ -33,6 +35,7 @@ import { Button } from "@/components/ui/Button";
 import { Label, Textarea } from "@/components/ui/Input";
 import { PageLoader, EmptyState, Alert } from "@/components/ui/Feedback";
 import { TimesheetStatusBadge } from "@/components/ui/Badge";
+import { RiskReview } from "@/components/timesheets/RiskReview";
 import {
   AnomalyPanel,
   CapacityBar,
@@ -46,37 +49,106 @@ import { cn, formatCurrency, formatDate, initials } from "@/lib/utils";
 
 type Tab = "NORMAL" | "ANOMALY";
 
+type View = "RISK" | "PROJECTS";
+
 export function VendorTimesheets() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [project, setProject] = useState<ProjectTimesheetAnalytics | null>(null);
   const [contractor, setContractor] = useState<ContractorTimesheetSummary | null>(null);
+
+  // The dashboard risk panel links straight into the flagged view.
+  const view: View = searchParams.get("view") === "projects" ? "PROJECTS" : "RISK";
+  const flaggedOnly = searchParams.get("filter") === "flagged";
+
+  const setView = (next: View) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "PROJECTS") params.set("view", "projects");
+    else params.delete("view");
+    params.delete("filter");
+    setSearchParams(params, { replace: true });
+    setProject(null);
+    setContractor(null);
+  };
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["timesheet-analytics"],
     queryFn: projectTimesheetAnalytics,
+    enabled: view === "PROJECTS",
   });
-
-  if (isLoading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs
-        project={project}
-        contractor={contractor}
-        onRoot={() => {
-          setProject(null);
-          setContractor(null);
-        }}
-        onProject={() => setContractor(null)}
-      />
-
-      {!project && <ProjectGrid analytics={analytics || []} onSelect={setProject} />}
-
-      {project && !contractor && (
-        <ContractorList project={project} onSelect={setContractor} />
+      {view === "RISK" ? (
+        <div>
+          <h1 className="text-2xl font-bold text-ink-900">Timesheets</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            Contractor timesheet risk across the programme. Hours, conflicts and flags are
+            calculated by the platform rule engine — you make the final decision.
+          </p>
+        </div>
+      ) : (
+        <Breadcrumbs
+          project={project}
+          contractor={contractor}
+          onRoot={() => {
+            setProject(null);
+            setContractor(null);
+          }}
+          onProject={() => setContractor(null)}
+        />
       )}
 
-      {project && contractor && <WeeklyReports project={project} contractor={contractor} />}
+      <div className="flex flex-wrap gap-2">
+        <ViewTab active={view === "RISK"} onClick={() => setView("RISK")}>
+          <ShieldAlert className="h-4 w-4" />
+          Risk review
+        </ViewTab>
+        <ViewTab active={view === "PROJECTS"} onClick={() => setView("PROJECTS")}>
+          <FolderKanban className="h-4 w-4" />
+          By project
+        </ViewTab>
+      </div>
+
+      {view === "RISK" ? (
+        <RiskReview initialPreset={flaggedOnly ? "FLAGGED" : "ALL"} />
+      ) : isLoading ? (
+        <PageLoader />
+      ) : (
+        <>
+          {!project && <ProjectGrid analytics={analytics || []} onSelect={setProject} />}
+
+          {project && !contractor && (
+            <ContractorList project={project} onSelect={setContractor} />
+          )}
+
+          {project && contractor && <WeeklyReports project={project} contractor={contractor} />}
+        </>
+      )}
     </div>
+  );
+}
+
+function ViewTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+        active
+          ? "border-brand-500 bg-brand-50 text-brand-800"
+          : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

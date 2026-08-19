@@ -4,6 +4,7 @@ import { getMyVendorDashboard } from "@/api/vendors";
 import { listMyContractors } from "@/api/contractors";
 import { listMyAssignments } from "@/api/assignments";
 import { listProjects } from "@/api/projects";
+import { timesheetRiskBoard } from "@/api/timesheets";
 import { StatCard, Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { PageLoader, EmptyState } from "@/components/ui/Feedback";
@@ -92,6 +93,8 @@ export function VendorDashboard() {
         />
       </div>
 
+      <ContractorTimesheetRisk />
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle>Projects</CardTitle><Link to="/vendor/projects"><Button variant="ghost" size="sm">Manage →</Button></Link></CardHeader>
@@ -160,5 +163,57 @@ export function VendorDashboard() {
         </Card>
       </div>
     </div>
+  );
+}
+
+/**
+ * Contractor timesheet risk at a glance.
+ *
+ * Counts come straight from the deterministic rule engine. Clicking through
+ * opens the existing Vendor Timesheets page already filtered to flagged rows.
+ */
+function ContractorTimesheetRisk() {
+  const { data } = useQuery({
+    queryKey: ["timesheet-risk", {}],
+    queryFn: () => timesheetRiskBoard(),
+  });
+
+  const s = data?.summary;
+  if (!s || s.total === 0) return null;
+
+  const bands = [
+    { label: "Critical", value: s.critical, dot: "bg-red-500", text: "text-red-700" },
+    { label: "High", value: s.high, dot: "bg-orange-500", text: "text-orange-700" },
+    { label: "Medium", value: s.medium, dot: "bg-amber-500", text: "text-amber-700" },
+    { label: "Clean", value: s.clean, dot: "bg-emerald-500", text: "text-emerald-700" },
+  ];
+
+  return (
+    <Link to="/vendor/timesheets?filter=flagged" className="block">
+      <Card className="transition-colors hover:border-brand-400">
+        <CardHeader>
+          <CardTitle>Contractor Timesheet Risk</CardTitle>
+          <Button variant="ghost" size="sm">Review →</Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {bands.map((b) => (
+              <div key={b.label} className="rounded-lg border border-ink-200 px-3 py-2">
+                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                  <span className={`h-2 w-2 rounded-full ${b.dot}`} />
+                  {b.label}
+                </p>
+                <p className={`mt-1 text-xl font-bold tabular-nums ${b.text}`}>{b.value}</p>
+              </div>
+            ))}
+          </div>
+          <p className={s.flagged ? "text-sm font-medium text-red-700" : "text-sm text-emerald-700"}>
+            {s.flagged
+              ? `${s.flagged} contractor timesheet${s.flagged === 1 ? "" : "s"} require review.`
+              : "No contractor timesheets require review."}
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

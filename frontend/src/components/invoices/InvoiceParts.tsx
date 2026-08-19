@@ -1,5 +1,5 @@
 /**
- * Presentation pieces shared by the vendor and worker invoice screens.
+ * Presentation pieces shared by the vendor and contractor invoice screens.
  *
  * Every figure rendered here comes from the API. The invoice calculation engine
  * runs server-side, so nothing in this file recomputes an amount.
@@ -288,7 +288,7 @@ export function InvoiceTimeline({ invoice }: { invoice: Invoice }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Worker performance                                                  */
+/* Contractor performance                                              */
 /* ------------------------------------------------------------------ */
 
 export function PerformancePanel({

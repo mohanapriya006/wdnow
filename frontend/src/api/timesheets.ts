@@ -3,6 +3,7 @@ import type {
   Timesheet,
   ProjectTimesheetAnalytics,
   ContractorTimesheetSummary,
+  TimesheetRiskBoard,
 } from "./types";
 
 export interface TimeEntryInput {
@@ -12,13 +13,22 @@ export interface TimeEntryInput {
   break_minutes?: number;
   work_location?: string;
   notes?: string;
-  milestone_id?: string;
+  /** Only needed when the contractor holds more than one assignment. */
+  assignment_id?: string;
 }
 
 export interface ReviewInput {
-  action: "APPROVE" | "REJECT";
+  action: "APPROVE" | "REJECT" | "REQUEST_CORRECTION";
   reason?: string;
   entry_id?: string;
+}
+
+export interface RiskFilters {
+  flag?: "FLAGGED" | "WARNING" | "CLEAN";
+  severity?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  contractor_id?: string;
+  project_id?: string;
+  q?: string;
 }
 
 /* ---- Contractor ---- */
@@ -51,6 +61,14 @@ export const projectTimesheets = async (projectId: string, contractorId?: string
       params: contractorId ? { contractor_id: contractorId } : undefined,
     })
   ).data;
+
+/** Contractor timesheet risk across the whole programme, calculated server-side. */
+export const timesheetRiskBoard = async (filters: RiskFilters = {}) => {
+  const params = Object.fromEntries(
+    Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+  );
+  return (await apiClient.get<TimesheetRiskBoard>("/api/timesheets/vendor/risk", { params })).data;
+};
 
 export const reviewTimesheet = async (id: string, payload: ReviewInput) =>
   (await apiClient.post<Timesheet>(`/api/timesheets/vendor/${id}/review`, payload)).data;

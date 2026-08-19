@@ -76,7 +76,7 @@ export const contractorPerformance = async (contractorId: string) =>
     )
   ).data;
 
-/* ---- Worker ---- */
+/* ---- Contractor ---- */
 export const myInvoices = async () =>
   (await apiClient.get<Invoice[]>("/api/invoices/me")).data;
 
